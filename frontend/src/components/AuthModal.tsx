@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogIn, UserPlus, Lock, Mail, Phone, User as UserIcon, AlertCircle, Loader2, Sparkles, X } from 'lucide-react';
+import { LogIn, UserPlus, Lock, Mail, Phone, User as UserIcon, AlertCircle, Loader2, X } from 'lucide-react';
 import { api } from '../services/api';
 import type { User } from '../types';
 
@@ -95,24 +95,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Demo user shortcut for instant login
-  const handleDemoLogin = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await api.login({
-        usernameOrEmail: 'alex',
-        password: 'password123',
-      });
-      onAuthSuccess(res.user);
-      if (onClose) onClose();
-    } catch (err: any) {
-      setError('Demo login failed. Please register a new account.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 py-6 sm:py-10 bg-slate-950/80 backdrop-blur-md animate-in fade-in overflow-y-auto">
       <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden relative m-auto">
@@ -198,7 +180,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. alex, alex@cointrail.com, or +15551000001"
+                  placeholder="Username, email, or mobile number"
                   value={loginIdentifier}
                   onChange={(e) => setLoginIdentifier(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all"
@@ -240,19 +222,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </>
               )}
             </button>
-
-            {/* Quick Demo Login Option */}
-            <div className="pt-2 text-center">
-              <button
-                type="button"
-                onClick={handleDemoLogin}
-                disabled={loading}
-                className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center justify-center space-x-1 mx-auto"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Instant Demo Login (Alex)</span>
-              </button>
-            </div>
           </form>
         ) : (
           /* Tab 2: REGISTER FORM */
@@ -283,7 +252,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <input
                   type="email"
                   required
-                  placeholder="e.g. alex@example.com"
+                  placeholder="name@example.com"
                   value={regEmail}
                   onChange={(e) => setRegEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all"
@@ -318,7 +287,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. alexmorgan"
+                  placeholder="Choose a username"
                   value={regUsername}
                   onChange={(e) => setRegUsername(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all"
