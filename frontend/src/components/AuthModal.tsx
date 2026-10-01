@@ -19,14 +19,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [tab, setTab] = useState<'login' | 'register'>('login');
 
   // Login form state
-  const [loginIdentifier, setLoginIdentifier] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
-  // Register form state
+  // Register form state: only Name, Email, Phone, and Password
   const [regFullName, setRegFullName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPhone, setRegPhone] = useState('');
-  const [regUsername, setRegUsername] = useState('');
   const [regPassword, setRegPassword] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -36,8 +35,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginIdentifier.trim() || !loginPassword) {
-      setError('Please fill in all fields');
+    if (!loginEmail.trim() || !loginPassword) {
+      setError('Please enter your email and password');
       return;
     }
 
@@ -45,13 +44,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setLoading(true);
       setError(null);
       const res = await api.login({
-        usernameOrEmail: loginIdentifier.trim(),
+        email: loginEmail.trim().toLowerCase(),
         password: loginPassword,
       });
       onAuthSuccess(res.user);
       if (onClose) onClose();
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Invalid username or password');
+      setError(err?.response?.data?.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
@@ -59,7 +58,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regFullName.trim() || !regEmail.trim() || !regPhone.trim() || !regUsername.trim() || !regPassword) {
+    if (!regFullName.trim() || !regEmail.trim() || !regPhone.trim() || !regPassword) {
       setError('Please complete all registration fields');
       return;
     }
@@ -81,15 +80,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setError(null);
       const res = await api.register({
         fullName: regFullName.trim(),
-        email: regEmail.trim(),
+        email: regEmail.trim().toLowerCase(),
         phoneNumber: cleanPhone,
-        username: regUsername.trim(),
         password: regPassword,
       });
       onAuthSuccess(res.user);
       if (onClose) onClose();
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Registration failed. Username, email, or phone number may already be in use.');
+      setError(err?.response?.data?.message || 'Registration failed. Email or phone number may already be in use.');
     } finally {
       setLoading(false);
     }
@@ -173,16 +171,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <form onSubmit={handleLoginSubmit} className="p-6 space-y-4 relative z-10">
             <div>
               <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                Username, Email, or Phone
+                Email Address
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
-                  type="text"
+                  type="email"
                   required
-                  placeholder="Username, email, or mobile number"
-                  value={loginIdentifier}
-                  onChange={(e) => setLoginIdentifier(e.target.value)}
+                  placeholder="name@example.com"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all"
                 />
               </div>
@@ -224,7 +222,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </button>
           </form>
         ) : (
-          /* Tab 2: REGISTER FORM */
+          /* Tab 2: REGISTER FORM (Name, Email, Phone, Password) */
           <form onSubmit={handleRegisterSubmit} className="p-6 space-y-3.5 relative z-10">
             <div>
               <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
@@ -273,23 +271,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   placeholder="e.g. 9876543210 or +919876543210"
                   value={regPhone}
                   onChange={(e) => setRegPhone(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                Username
-              </label>
-              <div className="relative">
-                <UserIcon className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  required
-                  placeholder="Choose a username"
-                  value={regUsername}
-                  onChange={(e) => setRegUsername(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all"
                 />
               </div>

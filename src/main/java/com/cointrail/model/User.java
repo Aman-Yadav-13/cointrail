@@ -19,9 +19,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Username is required")
-    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
-    @Column(nullable = false, length = 50)
+    @Column(length = 100)
     private String username;
 
     @NotBlank(message = "Email is required")
@@ -49,20 +47,23 @@ public class User {
         if (this.createdAt == null) {
             this.createdAt = Instant.now();
         }
+        if (this.username == null || this.username.trim().isEmpty()) {
+            this.username = this.email;
+        }
     }
 
     public User() {
     }
 
     public User(String username, String email, String password, String fullName) {
-        this.username = username;
+        this.username = (username != null && !username.trim().isEmpty()) ? username : email;
         this.email = email;
         this.password = password;
         this.fullName = fullName;
     }
 
     public User(String username, String email, String phoneNumber, String password, String fullName) {
-        this.username = username;
+        this.username = (username != null && !username.trim().isEmpty()) ? username : email;
         this.email = email;
         this.phoneNumber = phoneNumber;
         this.password = password;
@@ -78,7 +79,7 @@ public class User {
     }
 
     public String getUsername() {
-        return username;
+        return (username != null && !username.trim().isEmpty()) ? username : email;
     }
 
     public void setUsername(String username) {

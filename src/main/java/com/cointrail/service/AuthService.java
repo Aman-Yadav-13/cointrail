@@ -34,15 +34,11 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        String username = request.getUsername().trim().toLowerCase();
         String email = request.getEmail().trim().toLowerCase();
         String phoneNumber = request.getPhoneNumber() != null
                 ? request.getPhoneNumber().trim().replaceAll("[\\s-]", "")
                 : null;
-
-        if (userRepository.existsByUsername(username)) {
-            throw new IllegalArgumentException("Username '" + username + "' is already taken");
-        }
+        String fullName = request.getFullName().trim();
 
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email '" + email + "' is already registered");
@@ -52,33 +48,49 @@ public class AuthService {
             throw new IllegalArgumentException("Phone number '" + phoneNumber + "' is already registered");
         }
 
+        String username = (request.getUsername() != null && !request.getUsername().trim().isEmpty())
+                ? request.getUsername().trim().toLowerCase()
+                : email;
+
+        if (!username.equals(email) && userRepository.existsByUsername(username)) {
+            throw new IllegalArgumentException("Username '" + username + "' is already taken");
+        }
+
         User user = new User(
                 username,
                 email,
                 phoneNumber,
                 passwordEncoder.encode(request.getPassword()),
-                request.getFullName().trim()
+                fullName
         );
 
         User savedUser = userRepository.save(user);
-        String token = tokenProvider.generateToken(savedUser.getUsername(), savedUser.getId());
+        String token = tokenProvider.generateToken(savedUser.getEmail(), savedUser.getId());
 
         return new AuthResponse(token, UserDto.fromEntity(savedUser));
     }
 
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
-        String identifier = request.getUsernameOrEmail().trim();
-        String normalizedPhone = identifier.replaceAll("[\\s-]", "");
+        String email = request.getEmail() != null ? request.getEmail().trim().toLowerCase() : "";
+        if (email.isEmpty() && request.getUsernameOrEmail() != null) {
+            email = request.getUsernameOrEmail().trim().toLowerCase();
+        }
+
+        if (email.isEmpty()) {
+            throw new IllegalArgumentException("Email is required");
+        }
 
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(identifier, request.getPassword())
+                new UsernamePasswordAuthenticationToken(email, request.getPassword())
         );
 
-        User user = userRepository.findByUsernameOrEmailOrPhoneNumber(identifier.toLowerCase(), identifier.toLowerCase(), normalizedPhone)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid username, email, phone or password"));
+        String finalEmail = email;
+        User user = userRepository.findByEmail(email)
+                .orElseGet(() -> userRepository.findByUsernameOrEmailOrPhoneNumber(finalEmail, finalEmail, finalEmail)
+                        .orElseThrow(() -> new IllegalArgumentException("Invalid email or password")));
 
-        String token = tokenProvider.generateToken(user.getUsername(), user.getId());
+        String token = tokenProvider.generateToken(user.getEmail(), user.getId());
 
         return new AuthResponse(token, UserDto.fromEntity(user));
     }

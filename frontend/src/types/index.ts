@@ -66,7 +66,7 @@ export const CURRENCIES: Currency[] = [
 
 export interface User {
   id: number;
-  username: string;
+  username?: string;
   email: string;
   phoneNumber?: string;
   fullName: string;
@@ -79,15 +79,16 @@ export interface AuthResponse {
 }
 
 export interface LoginCredentials {
-  usernameOrEmail: string;
+  email: string;
   password: string;
+  usernameOrEmail?: string;
 }
 
 export interface RegisterCredentials {
-  username: string;
+  fullName: string;
   email: string;
   phoneNumber: string;
   password: string;
-  fullName: string;
+  username?: string;
 }
 

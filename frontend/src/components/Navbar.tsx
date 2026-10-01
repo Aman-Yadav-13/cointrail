@@ -143,9 +143,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="flex items-center space-x-1 sm:space-x-1.5 pl-1 sm:pl-2 border-l border-slate-200 dark:border-slate-800">
                 <div
                   className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs flex items-center justify-center shadow-sm flex-shrink-0"
-                  title={`Logged in as ${currentUser.fullName} (${currentUser.username})`}
+                  title={`Logged in as ${currentUser.fullName} (${currentUser.email})`}
                 >
-                  {currentUser.fullName ? currentUser.fullName.charAt(0).toUpperCase() : currentUser.username.charAt(0).toUpperCase()}
+                  {currentUser.fullName ? currentUser.fullName.charAt(0).toUpperCase() : (currentUser.email ? currentUser.email.charAt(0).toUpperCase() : 'U')}
                 </div>
                 <span className="hidden md:inline-block text-xs font-bold text-slate-700 dark:text-slate-200 max-w-[100px] truncate">
                   {currentUser.fullName.split(' ')[0]}
