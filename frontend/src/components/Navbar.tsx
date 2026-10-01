@@ -53,7 +53,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <img
               src="/logo.svg"
               alt="CoinTrail Logo"
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl shadow-md shadow-emerald-500/20 flex-shrink-0 object-contain"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl shadow-lg shadow-emerald-500/20 flex-shrink-0 object-contain hover:scale-105 transition-transform duration-200 cursor-pointer"
             />
             <div>
               <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">

@@ -125,7 +125,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <img
               src="/logo.svg"
               alt="CoinTrail Logo"
-              className="w-10 h-10 rounded-2xl shadow-md shadow-emerald-500/20 flex-shrink-0 object-contain"
+              className="w-11 h-11 rounded-2xl shadow-xl shadow-emerald-500/25 flex-shrink-0 object-contain"
             />
             <div>
               <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">CoinTrail</h2>
