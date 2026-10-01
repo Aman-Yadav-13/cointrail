@@ -19,6 +19,21 @@ interface MonthlyBarChartProps {
   onYearChange: (year: number) => void;
 }
 
+const DEFAULT_MONTHS: MonthlyTrend[] = [
+  { month: 1, monthName: 'Jan', totalAmount: 0, count: 0 },
+  { month: 2, monthName: 'Feb', totalAmount: 0, count: 0 },
+  { month: 3, monthName: 'Mar', totalAmount: 0, count: 0 },
+  { month: 4, monthName: 'Apr', totalAmount: 0, count: 0 },
+  { month: 5, monthName: 'May', totalAmount: 0, count: 0 },
+  { month: 6, monthName: 'Jun', totalAmount: 0, count: 0 },
+  { month: 7, monthName: 'Jul', totalAmount: 0, count: 0 },
+  { month: 8, monthName: 'Aug', totalAmount: 0, count: 0 },
+  { month: 9, monthName: 'Sep', totalAmount: 0, count: 0 },
+  { month: 10, monthName: 'Oct', totalAmount: 0, count: 0 },
+  { month: 11, monthName: 'Nov', totalAmount: 0, count: 0 },
+  { month: 12, monthName: 'Dec', totalAmount: 0, count: 0 },
+];
+
 export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
   data,
   currency,
@@ -28,23 +43,26 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
-  const totalYearSpent = data.reduce((sum, item) => sum + item.totalAmount, 0);
+  // If data is empty, use default 12-month skeleton so chart axes and structure always render cleanly
+  const chartData = data && data.length > 0 ? data : DEFAULT_MONTHS;
+  const totalYearSpent = chartData.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
 
-  // Track window width for mobile XAxis label formatting
+  // Track window width for mobile XAxis label formatting (< 640px = Tailwind sm breakpoint)
   const [isMobile, setIsMobile] = useState<boolean>(() => {
-    return typeof window !== 'undefined' ? window.innerWidth < 480 : false;
+    return typeof window !== 'undefined' ? window.innerWidth < 640 : false;
   });
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 480);
+      setIsMobile(window.innerWidth < 640);
     };
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   return (
-    <div className="bg-white dark:bg-slate-800/90 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col h-full min-w-0 w-full overflow-hidden transition-colors">
+    <div className="bg-white dark:bg-slate-800/90 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between min-h-[320px] sm:min-h-[360px] min-w-0 w-full overflow-hidden transition-colors">
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700/60 gap-2">
         <div className="min-w-0">
@@ -82,12 +100,12 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
         </div>
       </div>
 
-      {/* Chart Wrapper - min-w-0 prevents Recharts flex/grid collapse on mobile */}
-      <div className="w-full h-56 sm:h-64 pt-3 sm:pt-4 min-w-0 flex-1">
-        <ResponsiveContainer width="100%" height="100%">
+      {/* Chart Wrapper - fixed pixel height & minHeight prevents Recharts 0-height collapse on mobile */}
+      <div className="w-full h-56 sm:h-64 min-h-[220px] pt-3 sm:pt-4 min-w-0">
+        <ResponsiveContainer width="100%" height="100%" minHeight={200}>
           <BarChart
-            data={data}
-            margin={{ top: 8, right: 6, left: -16, bottom: 0 }}
+            data={chartData}
+            margin={{ top: 8, right: 6, left: -14, bottom: 0 }}
           >
             <CartesianGrid
               strokeDasharray="3 3"
@@ -100,18 +118,19 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
               axisLine={false}
               tickLine={false}
               interval={0}
-              tick={{ fill: '#94a3b8', fontSize: isMobile ? 8.5 : 10, fontWeight: 600 }}
-              tickFormatter={(val: string) => (isMobile ? val.charAt(0) : val)}
+              tick={{ fill: '#94a3b8', fontSize: isMobile ? 9 : 10, fontWeight: 600 }}
+              tickFormatter={(val: string) => (isMobile ? (val ? val.charAt(0) : '') : val)}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              width={38}
+              width={36}
+              domain={[0, (dataMax: number) => (dataMax > 0 ? Math.ceil(dataMax * 1.15) : 100)]}
               tick={{ fill: '#94a3b8', fontSize: 9 }}
               tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
             />
-            <Bar dataKey="totalAmount" radius={[5, 5, 1, 1]} maxBarSize={28}>
-              {data.map((entry, index) => {
+            <Bar dataKey="totalAmount" radius={[4, 4, 1, 1]} maxBarSize={28} minPointSize={2}>
+              {chartData.map((entry, index) => {
                 const isCurrent = selectedYear === currentYear && entry.month === currentMonth;
                 return (
                   <Cell

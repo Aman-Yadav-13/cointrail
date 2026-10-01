@@ -42,7 +42,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, curren
         <div className="flex-1 flex flex-col sm:flex-row items-center pt-2 gap-3 sm:gap-6 min-w-0">
           {/* Donut Chart */}
           <div className="w-full sm:w-1/2 h-52 sm:h-60 relative flex-shrink-0 min-w-0">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={180}>
               <PieChart>
                 <Pie
                   data={data}
