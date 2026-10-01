@@ -1,5 +1,5 @@
 import React from 'react';
-import { Coins, Plus, Settings2, Calendar, Sun, Moon, LogIn, LogOut } from 'lucide-react';
+import { Plus, Settings2, Calendar, Sun, Moon, LogIn, LogOut } from 'lucide-react';
 import { CURRENCIES, type Currency, type User } from '../types';
 
 interface NavbarProps {
@@ -50,9 +50,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center justify-between h-16 gap-2 sm:gap-4">
           {/* Logo */}
           <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 flex-shrink-0">
-              <Coins className="w-5 h-5 sm:w-6 sm:h-6" />
-            </div>
+            <img
+              src="/logo.svg"
+              alt="CoinTrail Logo"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl shadow-md shadow-emerald-500/20 flex-shrink-0 object-contain"
+            />
             <div>
               <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
                 CoinTrail
