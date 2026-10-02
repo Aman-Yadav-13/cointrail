@@ -6,16 +6,20 @@ public class OverviewDto {
     private BigDecimal totalSpent;
     private long totalTransactions;
     private String topCategory;
+    private String topCategoryIcon;
+    private String topCategoryColor;
     private BigDecimal dailyAverage;
     private BigDecimal highestSingleExpense;
 
     public OverviewDto() {
     }
 
-    public OverviewDto(BigDecimal totalSpent, long totalTransactions, String topCategory, BigDecimal dailyAverage, BigDecimal highestSingleExpense) {
+    public OverviewDto(BigDecimal totalSpent, long totalTransactions, String topCategory, String topCategoryIcon, String topCategoryColor, BigDecimal dailyAverage, BigDecimal highestSingleExpense) {
         this.totalSpent = totalSpent;
         this.totalTransactions = totalTransactions;
         this.topCategory = topCategory;
+        this.topCategoryIcon = topCategoryIcon;
+        this.topCategoryColor = topCategoryColor;
         this.dailyAverage = dailyAverage;
         this.highestSingleExpense = highestSingleExpense;
     }
@@ -42,6 +46,22 @@ public class OverviewDto {
 
     public void setTopCategory(String topCategory) {
         this.topCategory = topCategory;
+    }
+
+    public String getTopCategoryIcon() {
+        return topCategoryIcon;
+    }
+
+    public void setTopCategoryIcon(String topCategoryIcon) {
+        this.topCategoryIcon = topCategoryIcon;
+    }
+
+    public String getTopCategoryColor() {
+        return topCategoryColor;
+    }
+
+    public void setTopCategoryColor(String topCategoryColor) {
+        this.topCategoryColor = topCategoryColor;
     }
 
     public BigDecimal getDailyAverage() {

@@ -173,21 +173,24 @@ public class ExpenseService {
 
         BigDecimal totalSpent = BigDecimal.ZERO;
         BigDecimal highest = BigDecimal.ZERO;
-        Map<String, BigDecimal> categoryTotals = new HashMap<>();
+        Map<Category, BigDecimal> categoryTotals = new HashMap<>();
 
         for (ExpenseEntry entry : entries) {
             totalSpent = totalSpent.add(entry.getAmount());
             if (entry.getAmount().compareTo(highest) > 0) {
                 highest = entry.getAmount();
             }
-            String catName = entry.getCategory().getName();
-            categoryTotals.put(catName, categoryTotals.getOrDefault(catName, BigDecimal.ZERO).add(entry.getAmount()));
+            Category cat = entry.getCategory();
+            categoryTotals.put(cat, categoryTotals.getOrDefault(cat, BigDecimal.ZERO).add(entry.getAmount()));
         }
 
-        String topCategory = categoryTotals.entrySet().stream()
+        Map.Entry<Category, BigDecimal> topEntry = categoryTotals.entrySet().stream()
                 .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElse("None");
+                .orElse(null);
+
+        String topCategory = topEntry != null ? topEntry.getKey().getName() : "None";
+        String topCategoryIcon = topEntry != null ? topEntry.getKey().getIcon() : null;
+        String topCategoryColor = topEntry != null ? topEntry.getKey().getColor() : null;
 
         LocalDate today = LocalDate.now();
         // Cap the period end date to today if the filter extends into the future,
@@ -203,6 +206,6 @@ public class ExpenseService {
                 ? totalSpent.divide(BigDecimal.valueOf(daysElapsed), 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
-        return new OverviewDto(totalSpent, entries.size(), topCategory, dailyAvg, highest);
+        return new OverviewDto(totalSpent, entries.size(), topCategory, topCategoryIcon, topCategoryColor, dailyAvg, highest);
     }
 }

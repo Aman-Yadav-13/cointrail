@@ -43,6 +43,8 @@ export interface OverviewStats {
   totalSpent: number;
   totalTransactions: number;
   topCategory: string;
+  topCategoryIcon?: string;
+  topCategoryColor?: string;
   dailyAverage: number;
   highestSingleExpense: number;
 }

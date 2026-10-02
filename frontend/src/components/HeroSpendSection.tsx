@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus, TrendingUp, Award, Receipt, ArrowUpRight, Hash } from 'lucide-react';
 import type { OverviewStats, Currency } from '../types';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, renderCategoryIcon } from '../utils/formatters';
 
 interface HeroSpendSectionProps {
   stats: OverviewStats | null;
@@ -51,8 +51,21 @@ export const HeroSpendSection: React.FC<HeroSpendSectionProps> = ({
             <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Top Category
             </span>
-            <div className="w-6 h-6 rounded-lg bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center flex-shrink-0">
-              <Award className="w-3.5 h-3.5" />
+            <div
+              className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={
+                stats?.topCategoryColor
+                  ? { backgroundColor: `${stats.topCategoryColor}20`, color: stats.topCategoryColor }
+                  : undefined
+              }
+            >
+              {stats?.topCategoryIcon ? (
+                renderCategoryIcon(stats.topCategoryIcon, { className: 'w-3.5 h-3.5' })
+              ) : (
+                <div className="w-full h-full rounded-lg bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center">
+                  <Award className="w-3.5 h-3.5" />
+                </div>
+              )}
             </div>
           </div>
           <div>
@@ -140,6 +153,8 @@ export const HeroSpendSection: React.FC<HeroSpendSectionProps> = ({
             title: 'Top Category',
             value: stats?.topCategory || 'N/A',
             icon: Award,
+            customIcon: stats?.topCategoryIcon,
+            customColor: stats?.topCategoryColor,
             bgLight: 'bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-400',
             sub: 'Most expenditure',
           },
@@ -168,8 +183,19 @@ export const HeroSpendSection: React.FC<HeroSpendSectionProps> = ({
                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate pr-2">
                   {card.title}
                 </span>
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${card.bgLight}`}>
-                  <Icon className="w-5 h-5" />
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${!card.customColor ? card.bgLight : ''}`}
+                  style={
+                    card.customColor
+                      ? { backgroundColor: `${card.customColor}20`, color: card.customColor }
+                      : undefined
+                  }
+                >
+                  {card.customIcon ? (
+                    renderCategoryIcon(card.customIcon, { className: 'w-5 h-5' })
+                  ) : (
+                    <Icon className="w-5 h-5" />
+                  )}
                 </div>
               </div>
               <div className="mt-3">
