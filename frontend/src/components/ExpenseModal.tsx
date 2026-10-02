@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { Category, Currency, ExpenseEntry, ExpenseRequest } from '../types';
+import { formatDateToLocalISO } from '../utils/formatters';
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -21,7 +22,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
 }) => {
   const [amount, setAmount] = useState<string>('');
   const [categoryId, setCategoryId] = useState<number>(categories[0]?.id || 1);
-  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState<string>(formatDateToLocalISO(new Date()));
   const [description, setDescription] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +38,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       if (categories.length > 0) {
         setCategoryId(categories[0].id);
       }
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(formatDateToLocalISO(new Date()));
       setDescription('');
     }
     setError(null);

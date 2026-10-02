@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, ChevronDown, Check, X, Sparkles } from 'lucide-react';
+import { formatDateToLocalISO } from '../utils/formatters';
 
 interface DateFilterBarProps {
   dateFilterPreset: string;
@@ -44,8 +45,8 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
     const end = new Date();
     const start = new Date();
     start.setDate(end.getDate() - days);
-    const startStr = start.toISOString().split('T')[0];
-    const endStr = end.toISOString().split('T')[0];
+    const startStr = formatDateToLocalISO(start);
+    const endStr = formatDateToLocalISO(end);
     setCustomStart(startStr);
     setCustomEnd(endStr);
     onCustomDateChange(startStr, endStr, label);

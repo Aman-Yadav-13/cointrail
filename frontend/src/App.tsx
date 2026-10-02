@@ -21,6 +21,7 @@ import {
   type ExpenseRequest,
   type User,
 } from './types';
+import { formatDateToLocalISO } from './utils/formatters';
 import { RefreshCw, AlertCircle, Loader2, Plus } from 'lucide-react';
 
 export function App() {
@@ -150,8 +151,8 @@ export function App() {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
 
-    const startStr = firstDay.toISOString().split('T')[0];
-    const endStr = lastDay.toISOString().split('T')[0];
+    const startStr = formatDateToLocalISO(firstDay);
+    const endStr = formatDateToLocalISO(lastDay);
     const monthName = nextDate.toLocaleString('default', { month: 'short' });
 
     setStartDate(startStr);
@@ -186,20 +187,20 @@ export function App() {
     if (dateFilterPreset === 'this-month') {
       const firstDay = new Date(year, month, 1);
       const lastDay = new Date(year, month + 1, 0);
-      setStartDate(firstDay.toISOString().split('T')[0]);
-      setEndDate(lastDay.toISOString().split('T')[0]);
+      setStartDate(formatDateToLocalISO(firstDay));
+      setEndDate(formatDateToLocalISO(lastDay));
       setPeriodLabel('This Month');
     } else if (dateFilterPreset === 'last-month') {
       const firstDay = new Date(year, month - 1, 1);
       const lastDay = new Date(year, month, 0);
-      setStartDate(firstDay.toISOString().split('T')[0]);
-      setEndDate(lastDay.toISOString().split('T')[0]);
+      setStartDate(formatDateToLocalISO(firstDay));
+      setEndDate(formatDateToLocalISO(lastDay));
       setPeriodLabel('Last Month');
     } else if (dateFilterPreset === 'this-year') {
       const firstDay = new Date(year, 0, 1);
       const lastDay = new Date(year, 11, 31);
-      setStartDate(firstDay.toISOString().split('T')[0]);
-      setEndDate(lastDay.toISOString().split('T')[0]);
+      setStartDate(formatDateToLocalISO(firstDay));
+      setEndDate(formatDateToLocalISO(lastDay));
       setPeriodLabel(`Year ${year}`);
     } else if (dateFilterPreset === 'all') {
       setStartDate('2000-01-01');
