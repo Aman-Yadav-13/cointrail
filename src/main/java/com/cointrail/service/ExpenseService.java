@@ -189,9 +189,18 @@ public class ExpenseService {
                 .map(Map.Entry::getKey)
                 .orElse("None");
 
-        long daysBetween = ChronoUnit.DAYS.between(start, end) + 1;
-        BigDecimal dailyAvg = daysBetween > 0 && totalSpent.compareTo(BigDecimal.ZERO) > 0
-                ? totalSpent.divide(BigDecimal.valueOf(daysBetween), 2, RoundingMode.HALF_UP)
+        LocalDate today = LocalDate.now();
+        // Cap the period end date to today if the filter extends into the future,
+        // so we only average across days that have actually elapsed.
+        LocalDate effectiveEnd = end.isAfter(today) ? today : end;
+
+        long daysElapsed = 0;
+        if (!start.isAfter(today)) {
+            daysElapsed = ChronoUnit.DAYS.between(start, effectiveEnd) + 1;
+        }
+
+        BigDecimal dailyAvg = daysElapsed > 0 && totalSpent.compareTo(BigDecimal.ZERO) > 0
+                ? totalSpent.divide(BigDecimal.valueOf(daysElapsed), 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
         return new OverviewDto(totalSpent, entries.size(), topCategory, dailyAvg, highest);

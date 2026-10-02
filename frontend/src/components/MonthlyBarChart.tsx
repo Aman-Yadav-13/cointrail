@@ -151,7 +151,10 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
           <TrendingUp className="w-3 h-3 text-emerald-500" />
           <span>Monthly Avg:</span>
           <strong className="text-slate-800 dark:text-slate-200">
-            {formatCurrency(totalYearSpent / 12, currency.symbol)}
+            {(() => {
+              const elapsedMonths = selectedYear < currentYear ? 12 : (selectedYear === currentYear ? currentMonth : 0);
+              return formatCurrency(elapsedMonths > 0 ? totalYearSpent / elapsedMonths : 0, currency.symbol);
+            })()}
           </strong>
         </span>
         <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
