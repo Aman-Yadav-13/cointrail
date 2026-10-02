@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Plus, Edit2, Trash2, Check } from 'lucide-react';
 import type { Category } from '../types';
 import { ICON_MAP, renderCategoryIcon } from '../utils/formatters';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface CategoryModalProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   onDeleteCategory,
 }) => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [name, setName] = useState('');
   const [color, setColor] = useState('#10B981');
   const [icon, setIcon] = useState('Tag');
@@ -233,19 +235,11 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
                     </button>
                     {!cat.isDefault && (
                       <button
-                        onClick={async () => {
-                          if (window.confirm(`Delete category "${cat.name}"?`)) {
-                            try {
-                              await onDeleteCategory(cat.id);
-                            } catch (err: any) {
-                              setError(err?.response?.data?.message || 'Could not delete category');
-                            }
-                          }
-                        }}
+                        onClick={() => setCategoryToDelete(cat)}
                         className="p-1 sm:p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
                         title="Delete Category"
                       >
-                        <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
@@ -255,6 +249,33 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Delete Category Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!categoryToDelete}
+        onClose={() => setCategoryToDelete(null)}
+        onConfirm={async () => {
+          if (categoryToDelete) {
+            try {
+              await onDeleteCategory(categoryToDelete.id);
+              setCategoryToDelete(null);
+            } catch (err: any) {
+              setError(err?.response?.data?.message || 'Could not delete category');
+              setCategoryToDelete(null);
+            }
+          }
+        }}
+        title="Delete Category?"
+        description={
+          categoryToDelete
+            ? `Are you sure you want to delete the "${categoryToDelete.name}" category? This cannot be undone.`
+            : 'Are you sure you want to delete this category?'
+        }
+        confirmText="Delete Category"
+        cancelText="Cancel"
+        variant="danger"
+        icon="trash"
+      />
     </div>
   );
 };

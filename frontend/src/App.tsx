@@ -8,6 +8,7 @@ import { ExpenseTable } from './components/ExpenseTable';
 import { ExpenseModal } from './components/ExpenseModal';
 import { CategoryModal } from './components/CategoryModal';
 import { AuthModal } from './components/AuthModal';
+import { ConfirmDialog } from './components/ConfirmDialog';
 import { api } from './services/api';
 import {
   CURRENCIES,
@@ -105,6 +106,7 @@ export function App() {
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseEntry | null>(null);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [isSignoutConfirmOpen, setIsSignoutConfirmOpen] = useState(false);
 
   // Verify auth on mount
   useEffect(() => {
@@ -340,7 +342,7 @@ export function App() {
         isDarkMode={isDarkMode}
         onToggleDarkMode={toggleDarkMode}
         currentUser={currentUser}
-        onLogout={handleLogout}
+        onLogout={() => setIsSignoutConfirmOpen(true)}
         onOpenAuth={() => setIsAuthModalOpen(true)}
       />
 
@@ -460,6 +462,22 @@ export function App() {
         onClose={() => setIsAuthModalOpen(false)}
         onAuthSuccess={handleAuthSuccess}
         canClose={currentUser !== null}
+      />
+
+      {/* Sign Out Confirmation Modal */}
+      <ConfirmDialog
+        isOpen={isSignoutConfirmOpen}
+        onClose={() => setIsSignoutConfirmOpen(false)}
+        onConfirm={() => {
+          setIsSignoutConfirmOpen(false);
+          handleLogout();
+        }}
+        title="Sign Out of CoinTrail?"
+        description="Are you sure you want to sign out? Your current session will end and you will need to sign in again to access your account."
+        confirmText="Sign Out"
+        cancelText="Cancel"
+        variant="danger"
+        icon="logout"
       />
     </div>
   );

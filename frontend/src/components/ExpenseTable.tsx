@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, Trash2, Edit3, ArrowUpDown } from 'lucide-react';
 import type { ExpenseEntry, Category, Currency } from '../types';
 import { formatCurrency, formatDate, renderCategoryIcon } from '../utils/formatters';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface ExpenseTableProps {
   expenses: ExpenseEntry[];
@@ -21,6 +22,7 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [entryToDelete, setEntryToDelete] = useState<ExpenseEntry | null>(null);
 
   const filtered = expenses
     .filter((entry) => {
@@ -149,11 +151,7 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
                     <Edit3 className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    onClick={() => {
-                      if (window.confirm('Delete this expense?')) {
-                        onDelete(entry.id);
-                      }
-                    }}
+                    onClick={() => setEntryToDelete(entry)}
                     className="p-1.5 hover:text-rose-500 dark:hover:text-rose-400 text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors"
                     aria-label="Delete"
                   >
@@ -219,11 +217,7 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => {
-                          if (window.confirm('Are you sure you want to delete this expense?')) {
-                            onDelete(entry.id);
-                          }
-                        }}
+                        onClick={() => setEntryToDelete(entry)}
                         className="p-1 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-md transition-colors"
                         title="Delete expense"
                       >
@@ -237,6 +231,28 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Delete Transaction Confirmation Modal */}
+      <ConfirmDialog
+        isOpen={!!entryToDelete}
+        onClose={() => setEntryToDelete(null)}
+        onConfirm={() => {
+          if (entryToDelete) {
+            onDelete(entryToDelete.id);
+            setEntryToDelete(null);
+          }
+        }}
+        title="Delete Transaction?"
+        description={
+          entryToDelete
+            ? `Are you sure you want to delete this expense of ${formatCurrency(entryToDelete.amount, currency.symbol)} for ${entryToDelete.category.name}? This record will be permanently removed.`
+            : 'Are you sure you want to delete this transaction?'
+        }
+        confirmText="Delete Expense"
+        cancelText="Cancel"
+        variant="danger"
+        icon="trash"
+      />
     </div>
   );
 };
