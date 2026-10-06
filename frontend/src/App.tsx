@@ -386,42 +386,48 @@ export function App() {
         {/* Dashboard Sections with Unified Loading Blur & Indicator */}
         <div className="relative space-y-3.5 sm:space-y-6">
           {loading && (
-            <div className="absolute inset-0 bg-white/50 dark:bg-slate-950/65 backdrop-blur-[3px] rounded-3xl flex flex-col items-center justify-center z-30 pointer-events-none transition-all duration-300">
-              <div className="bg-white/95 dark:bg-slate-900/95 border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-emerald-500/10 rounded-3xl p-5 sm:p-6 flex flex-col items-center max-w-[260px] text-center transform scale-100 animate-in fade-in zoom-in-95 duration-200">
-                {/* Gyroscopic Quantum Orbit: Dual Rings with Pulsing Node and Accelerating Comet */}
-                <div className="relative w-16 h-16 mb-4 flex items-center justify-center">
-                  {/* Outer Gyroscopic Orbital Ring with 3D tilt */}
-                  <div className="absolute inset-0 rounded-full border-[1.5px] border-emerald-400/30 border-t-emerald-300 border-l-teal-200 animate-gyro-ring" />
+            <>
+              {/* Full Content Blur Backdrop */}
+              <div className="absolute inset-0 bg-white/50 dark:bg-slate-950/65 backdrop-blur-[3px] rounded-3xl z-20 pointer-events-none transition-all duration-300" />
 
-                  {/* Inner Fast High-Velocity Radar Trail */}
-                  <div className="absolute inset-2 rounded-full border-[2px] border-emerald-500/10 border-r-emerald-400 border-t-emerald-400 animate-radar-spin" />
+              {/* Viewport-Centered Floating Glass Card (Always in current screen view, regardless of page scroll) */}
+              <div className="fixed inset-0 z-30 pointer-events-none flex items-center justify-center p-4">
+                <div className="bg-white/95 dark:bg-slate-900/95 border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-emerald-500/10 rounded-3xl p-5 sm:p-6 flex flex-col items-center max-w-[260px] text-center transform scale-100 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto">
+                  {/* Gyroscopic Quantum Orbit: Dual Rings with Pulsing Node and Accelerating Comet */}
+                  <div className="relative w-16 h-16 mb-4 flex items-center justify-center">
+                    {/* Outer Gyroscopic Orbital Ring with 3D tilt */}
+                    <div className="absolute inset-0 rounded-full border-[1.5px] border-emerald-400/30 border-t-emerald-300 border-l-teal-200 animate-gyro-ring" />
 
-                  {/* Radial ambient glow backdrop */}
-                  <div className="absolute inset-2 rounded-full bg-emerald-500/20 blur-md animate-pulse" />
+                    {/* Inner Fast High-Velocity Radar Trail */}
+                    <div className="absolute inset-2 rounded-full border-[2px] border-emerald-500/10 border-r-emerald-400 border-t-emerald-400 animate-radar-spin" />
 
-                  {/* Core Glowing Emerald Coin Node */}
-                  <div className="relative w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/50 animate-core-breathe">
-                    <div className="w-6 h-6 rounded-full bg-slate-950/80 backdrop-blur-sm border border-emerald-300/60 flex items-center justify-center">
-                      <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-emerald-400 to-teal-200 shadow-sm shadow-emerald-300" />
+                    {/* Radial ambient glow backdrop */}
+                    <div className="absolute inset-2 rounded-full bg-emerald-500/20 blur-md animate-pulse" />
+
+                    {/* Core Glowing Emerald Coin Node */}
+                    <div className="relative w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/50 animate-core-breathe">
+                      <div className="w-6 h-6 rounded-full bg-slate-950/80 backdrop-blur-sm border border-emerald-300/60 flex items-center justify-center">
+                        <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-emerald-400 to-teal-200 shadow-sm shadow-emerald-300" />
+                      </div>
+                    </div>
+
+                    {/* Tiny comet satellite orbiting */}
+                    <div className="absolute inset-0 animate-radar-spin pointer-events-none">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_#34d399] -top-0.5 left-1/2 -translate-x-1/2" />
                     </div>
                   </div>
 
-                  {/* Tiny comet satellite orbiting */}
-                  <div className="absolute inset-0 animate-radar-spin pointer-events-none">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_#34d399] -top-0.5 left-1/2 -translate-x-1/2" />
-                  </div>
+                  {/* Creative Financial Copy */}
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center justify-center gap-1.5">
+                    <span>Balancing the Books</span>
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500 animate-bounce" />
+                  </h4>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-400 font-medium mt-1">
+                    Tracing every coin & trail...
+                  </p>
                 </div>
-
-                {/* Creative Financial Copy */}
-                <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center justify-center gap-1.5">
-                  <span>Balancing the Books</span>
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500 animate-bounce" />
-                </h4>
-                <p className="text-[11px] text-slate-400 dark:text-slate-400 font-medium mt-1">
-                  Tracing every coin & trail...
-                </p>
               </div>
-            </div>
+            </>
           )}
 
           {/* Dedicated Date Filter Bar for Mobile & Tablet (< lg screens) */}
