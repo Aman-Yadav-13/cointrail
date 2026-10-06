@@ -22,7 +22,7 @@ import {
   type User,
 } from './types';
 import { formatDateToLocalISO } from './utils/formatters';
-import { RefreshCw, AlertCircle, Loader2, Plus } from 'lucide-react';
+import { RefreshCw, AlertCircle, Plus, Sparkles } from 'lucide-react';
 
 export function App() {
   // Theme state (Night mode default)
@@ -372,12 +372,30 @@ export function App() {
         {/* Dashboard Sections with Unified Loading Blur & Indicator */}
         <div className="relative space-y-3.5 sm:space-y-6">
           {loading && (
-            <div className="absolute inset-0 bg-white/45 dark:bg-slate-900/50 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center z-20 pointer-events-none transition-all">
-              <div className="bg-white/90 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 shadow-xl rounded-2xl px-5 py-3.5 flex items-center space-x-3">
-                <Loader2 className="w-5 h-5 animate-spin text-emerald-600 dark:text-emerald-400" />
-                <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
-                  Updating records...
-                </span>
+            <div className="absolute inset-0 bg-white/50 dark:bg-slate-950/65 backdrop-blur-[3px] rounded-3xl flex flex-col items-center justify-center z-30 pointer-events-none transition-all duration-300">
+              <div className="bg-white/95 dark:bg-slate-900/95 border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-emerald-500/10 rounded-3xl p-5 sm:p-6 flex flex-col items-center max-w-[260px] text-center transform scale-100 animate-in fade-in zoom-in-95 duration-200">
+                {/* 3D Flipping Gold Coin with Orbiting Trail Ring */}
+                <div className="relative w-14 h-14 mb-3.5 flex items-center justify-center">
+                  {/* Orbiting gradient trail ring */}
+                  <div className="absolute inset-0 rounded-full border-2 border-emerald-500/20 border-t-emerald-400 border-r-teal-300 animate-orbit-trail" />
+                  
+                  {/* Outer subtle soft glow */}
+                  <div className="absolute inset-1 rounded-full bg-amber-400/15 dark:bg-amber-400/20 blur-md animate-pulse" />
+
+                  {/* 3D Flipping Coin */}
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 border-2 border-amber-300/80 shadow-md flex items-center justify-center text-amber-950 font-black animate-coin-flip">
+                    <span className="text-base select-none leading-none">🪙</span>
+                  </div>
+                </div>
+
+                {/* Creative Financial Copy */}
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center justify-center gap-1.5">
+                  <span>Balancing the Books</span>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500 animate-bounce" />
+                </h4>
+                <p className="text-[11px] text-slate-400 dark:text-slate-400 font-medium mt-1">
+                  Tracing every coin & trail...
+                </p>
               </div>
             </div>
           )}
