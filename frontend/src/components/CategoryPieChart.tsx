@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import {
   PieChart as PieIcon,
-  Tag,
+  Plus,
   RotateCcw,
   Info,
   ChevronLeft,
@@ -186,11 +186,12 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
           {onOpenCategories && (
             <button
               onClick={onOpenCategories}
-              className="text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 border border-emerald-200/80 dark:border-emerald-800 flex items-center space-x-1 transition-all active:scale-95 cursor-pointer"
-              title="Add or Manage Categories"
+              className="text-[11px] sm:text-xs font-bold px-2 sm:px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 border border-emerald-300/80 dark:border-emerald-800 flex items-center space-x-1 transition-all active:scale-95 shadow-xs cursor-pointer"
+              title="Add Category"
             >
-              <Tag className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-              <span className="hidden sm:inline">Categories</span>
+              <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[2.5] text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+              <span className="font-bold text-[11px] sm:text-xs hidden xs:inline sm:inline">Add </span>
+              <span className="font-bold text-[11px] sm:text-xs">Category</span>
             </button>
           )}
 
