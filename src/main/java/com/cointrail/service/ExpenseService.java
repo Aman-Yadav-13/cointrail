@@ -139,21 +139,67 @@ public class ExpenseService {
         // Pre-populate all 12 months with zero
         Map<Integer, BigDecimal> monthlyTotals = new HashMap<>();
         Map<Integer, Long> monthlyCounts = new HashMap<>();
+        Map<Integer, Map<Category, BigDecimal>> monthlyCategoryTotals = new HashMap<>();
+        Map<Integer, Map<Category, Long>> monthlyCategoryCounts = new HashMap<>();
+
         for (int m = 1; m <= 12; m++) {
             monthlyTotals.put(m, BigDecimal.ZERO);
             monthlyCounts.put(m, 0L);
+            monthlyCategoryTotals.put(m, new HashMap<>());
+            monthlyCategoryCounts.put(m, new HashMap<>());
         }
 
         for (ExpenseEntry entry : entries) {
             int m = entry.getDate().getMonthValue();
             monthlyTotals.put(m, monthlyTotals.get(m).add(entry.getAmount()));
             monthlyCounts.put(m, monthlyCounts.get(m) + 1);
+
+            Category cat = entry.getCategory();
+            if (cat != null) {
+                Map<Category, BigDecimal> catTotals = monthlyCategoryTotals.get(m);
+                catTotals.put(cat, catTotals.getOrDefault(cat, BigDecimal.ZERO).add(entry.getAmount()));
+
+                Map<Category, Long> catCounts = monthlyCategoryCounts.get(m);
+                catCounts.put(cat, catCounts.getOrDefault(cat, 0L) + 1L);
+            }
         }
 
         List<MonthlyTrendDto> result = new ArrayList<>();
         for (int m = 1; m <= 12; m++) {
             String monthName = Month.of(m).getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
-            result.add(new MonthlyTrendDto(m, monthName, monthlyTotals.get(m), monthlyCounts.get(m)));
+            BigDecimal mTotal = monthlyTotals.get(m);
+            long mCount = monthlyCounts.get(m);
+
+            List<CategorySummaryDto> breakdowns = new ArrayList<>();
+            Map<Category, BigDecimal> catTotals = monthlyCategoryTotals.get(m);
+            Map<Category, Long> catCounts = monthlyCategoryCounts.get(m);
+
+            for (Map.Entry<Category, BigDecimal> catEntry : catTotals.entrySet()) {
+                Category cat = catEntry.getKey();
+                BigDecimal catAmt = catEntry.getValue();
+                Long count = catCounts.getOrDefault(cat, 0L);
+
+                CategorySummaryDto dto = new CategorySummaryDto(
+                        cat.getId(),
+                        cat.getName(),
+                        cat.getColor(),
+                        cat.getIcon(),
+                        catAmt,
+                        count
+                );
+                if (mTotal.compareTo(BigDecimal.ZERO) > 0) {
+                    double pct = catAmt.divide(mTotal, 4, RoundingMode.HALF_UP).doubleValue() * 100.0;
+                    dto.setPercentage(Math.round(pct * 10.0) / 10.0);
+                } else {
+                    dto.setPercentage(0.0);
+                }
+                breakdowns.add(dto);
+            }
+
+            // Sort breakdowns descending by total spent
+            breakdowns.sort((a, b) -> b.getTotalAmount().compareTo(a.getTotalAmount()));
+
+            result.add(new MonthlyTrendDto(m, monthName, mTotal, mCount, breakdowns));
         }
         return result;
     }

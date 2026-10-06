@@ -38,6 +38,7 @@ export interface MonthlyTrend {
   monthName: string;
   totalAmount: number;
   count: number;
+  categoryBreakdowns?: CategorySummary[];
 }
 
 export interface OverviewStats {
