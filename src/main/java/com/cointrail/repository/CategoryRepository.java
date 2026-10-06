@@ -2,6 +2,8 @@ package com.cointrail.repository;
 
 import com.cointrail.model.Category;
 import com.cointrail.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,6 +17,12 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     @Query("SELECT c FROM Category c WHERE c.user IS NULL OR c.user = :user ORDER BY c.name ASC")
     List<Category> findAvailableForUser(@Param("user") User user);
+
+    @Query("SELECT c FROM Category c WHERE (c.user IS NULL OR c.user = :user) AND (:search IS NULL OR :search = '' OR LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%'))) ORDER BY c.name ASC")
+    Page<Category> findAvailableForUserPaged(@Param("user") User user, @Param("search") String search, Pageable pageable);
+
+    @Query("SELECT c FROM Category c WHERE :search IS NULL OR :search = '' OR LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')) ORDER BY c.name ASC")
+    Page<Category> findAllPaged(@Param("search") String search, Pageable pageable);
 
     @Query("SELECT COUNT(c) > 0 FROM Category c WHERE LOWER(c.name) = LOWER(:name) AND (c.user IS NULL OR c.user = :user)")
     boolean existsByNameForUser(@Param("name") String name, @Param("user") User user);
