@@ -5,33 +5,48 @@ import com.cointrail.model.Category;
 import com.cointrail.model.User;
 import com.cointrail.repository.CategoryRepository;
 import com.cointrail.repository.ExpenseEntryRepository;
+import com.cointrail.repository.UserRepository;
 import com.cointrail.security.SecurityUtils;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 @Service
 @Transactional
 public class CategoryService {
 
+    private static final Logger log = LoggerFactory.getLogger(CategoryService.class);
+
     private final CategoryRepository categoryRepository;
     private final ExpenseEntryRepository expenseEntryRepository;
     private final SecurityUtils securityUtils;
+    private final ColorPaletteService colorPaletteService;
+    private final UserRepository userRepository;
 
     public CategoryService(CategoryRepository categoryRepository,
                            ExpenseEntryRepository expenseEntryRepository,
-                           SecurityUtils securityUtils) {
+                           SecurityUtils securityUtils,
+                           ColorPaletteService colorPaletteService,
+                           UserRepository userRepository) {
         this.categoryRepository = categoryRepository;
         this.expenseEntryRepository = expenseEntryRepository;
         this.securityUtils = securityUtils;
+        this.colorPaletteService = colorPaletteService;
+        this.userRepository = userRepository;
     }
 
     @PostConstruct
+    public void initCategories() {
+        seedDefaultCategories();
+        deduplicateCategoryColors();
+    }
+
     public void seedDefaultCategories() {
         if (categoryRepository.count() == 0) {
             List<Category> defaults = Arrays.asList(
@@ -47,6 +62,49 @@ public class CategoryService {
             );
             categoryRepository.saveAll(defaults);
         }
+    }
+
+    /**
+     * Deduplicates existing categories across the database user-wise,
+     * ensuring no user has two categories with the exact same color.
+     */
+    public void deduplicateCategoryColors() {
+        int updatedCount = 0;
+        // 1. Ensure default system categories have distinct unique colors from arsenal
+        List<Category> defaults = categoryRepository.findByUserIsNull();
+        Set<String> defaultColors = new HashSet<>();
+        for (Category def : defaults) {
+            String color = def.getColor();
+            if (color == null || color.isBlank() || defaultColors.contains(color.toUpperCase())) {
+                String newColor = colorPaletteService.assignUniqueColor(defaultColors);
+                def.setColor(newColor);
+                categoryRepository.save(def);
+                defaultColors.add(newColor.toUpperCase());
+                updatedCount++;
+            } else {
+                defaultColors.add(color.toUpperCase());
+            }
+        }
+
+        // 2. For each user, ensure their custom categories don't duplicate any color
+        List<User> users = userRepository.findAll();
+        for (User user : users) {
+            Set<String> userColors = new HashSet<>(defaultColors);
+            List<Category> userCategories = categoryRepository.findByUser(user);
+            for (Category cat : userCategories) {
+                String color = cat.getColor();
+                if (color == null || color.isBlank() || userColors.contains(color.toUpperCase())) {
+                    String newColor = colorPaletteService.assignUniqueColor(userColors);
+                    cat.setColor(newColor);
+                    categoryRepository.save(cat);
+                    userColors.add(newColor.toUpperCase());
+                    updatedCount++;
+                } else {
+                    userColors.add(color.toUpperCase());
+                }
+            }
+        }
+        log.info("Deduplication check completed. Total category colors reassigned: {}", updatedCount);
     }
 
     @Transactional(readOnly = true)
@@ -72,9 +130,21 @@ public class CategoryService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "A category with name '" + name + "' already exists");
         }
 
+        // Collect existing colors used by this user (including system default categories)
+        List<Category> available = user != null ? categoryRepository.findAvailableForUser(user) : categoryRepository.findAll();
+        Set<String> usedColors = new HashSet<>();
+        for (Category existing : available) {
+            if (existing.getColor() != null && !existing.getColor().isBlank()) {
+                usedColors.add(existing.getColor());
+            }
+        }
+
+        // System assigns unique color from 1,000+ color arsenal (user cannot pick color)
+        String assignedColor = colorPaletteService.assignUniqueColor(usedColors);
+
         Category category = new Category();
         category.setName(name);
-        category.setColor(dto.getColor() != null && !dto.getColor().isBlank() ? dto.getColor() : "#6B7280");
+        category.setColor(assignedColor);
         category.setIcon(dto.getIcon() != null && !dto.getIcon().isBlank() ? dto.getIcon() : "Tag");
         category.setDefault(false);
         category.setUser(user);
@@ -95,9 +165,19 @@ public class CategoryService {
         }
 
         category.setName(name);
-        if (dto.getColor() != null && !dto.getColor().isBlank()) {
-            category.setColor(dto.getColor());
+
+        // User cannot change system-assigned color. Preserve assigned color (or assign unique if missing)
+        if (category.getColor() == null || category.getColor().isBlank()) {
+            List<Category> available = user != null ? categoryRepository.findAvailableForUser(user) : categoryRepository.findAll();
+            Set<String> usedColors = new HashSet<>();
+            for (Category existing : available) {
+                if (!existing.getId().equals(id) && existing.getColor() != null) {
+                    usedColors.add(existing.getColor());
+                }
+            }
+            category.setColor(colorPaletteService.assignUniqueColor(usedColors));
         }
+
         if (dto.getIcon() != null && !dto.getIcon().isBlank()) {
             category.setIcon(dto.getIcon());
         }

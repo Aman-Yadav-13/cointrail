@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, Plus, Edit2, Trash2, Check, Lock, Search, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
+import { X, Plus, Edit2, Trash2, Lock, Search, Loader2, Sparkles, CheckCircle2, Palette } from 'lucide-react';
 import type { Category } from '../types';
 import { ICON_MAP, renderCategoryIcon } from '../utils/formatters';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -12,60 +12,6 @@ interface CategoryModalProps {
   onUpdateCategory: (id: number, data: { name: string; color: string; icon: string }) => Promise<void>;
   onDeleteCategory: (id: number) => Promise<void>;
 }
-
-// 40+ Curated modern colors categorized by name for searchability
-const EXTENDED_COLOR_PRESETS = [
-  // Emerald & Teals
-  { hex: '#10B981', name: 'Emerald' },
-  { hex: '#059669', name: 'Forest Emerald' },
-  { hex: '#14B8A6', name: 'Teal' },
-  { hex: '#0D9488', name: 'Dark Teal' },
-  { hex: '#06B6D4', name: 'Cyan' },
-  { hex: '#0891B2', name: 'Ocean Cyan' },
-  { hex: '#2DD4BF', name: 'Mint' },
-  { hex: '#84CC16', name: 'Lime' },
-  { hex: '#65A30D', name: 'Olive Lime' },
-  { hex: '#22C55E', name: 'Vibrant Green' },
-
-  // Blues & Indigos
-  { hex: '#3B82F6', name: 'Sky Blue' },
-  { hex: '#2563EB', name: 'Royal Blue' },
-  { hex: '#1D4ED8', name: 'Deep Blue' },
-  { hex: '#60A5FA', name: 'Baby Blue' },
-  { hex: '#6366F1', name: 'Indigo' },
-  { hex: '#4F46E5', name: 'Electric Indigo' },
-  { hex: '#818CF8', name: 'Soft Indigo' },
-
-  // Purples & Pinks
-  { hex: '#8B5CF6', name: 'Purple' },
-  { hex: '#7C3AED', name: 'Deep Violet' },
-  { hex: '#A855F7', name: 'Amethyst' },
-  { hex: '#C084FC', name: 'Lilac' },
-  { hex: '#EC4899', name: 'Pink' },
-  { hex: '#DB2777', name: 'Rose Pink' },
-  { hex: '#F472B6', name: 'Flamingo' },
-  { hex: '#F43F5E', name: 'Crimson Rose' },
-
-  // Ambers, Oranges & Reds
-  { hex: '#EF4444', name: 'Red' },
-  { hex: '#DC2626', name: 'Ruby Red' },
-  { hex: '#F97316', name: 'Orange' },
-  { hex: '#EA580C', name: 'Tangerine' },
-  { hex: '#FB923C', name: 'Peach' },
-  { hex: '#F59E0B', name: 'Amber Gold' },
-  { hex: '#D97706', name: 'Warm Gold' },
-  { hex: '#FBBF24', name: 'Sunflower' },
-  { hex: '#EAB308', name: 'Yellow' },
-
-  // Neutrals, Slate & Earth
-  { hex: '#64748B', name: 'Slate Gray' },
-  { hex: '#475569', name: 'Dark Slate' },
-  { hex: '#71717A', name: 'Zinc' },
-  { hex: '#78716C', name: 'Stone' },
-  { hex: '#854D0E', name: 'Bronze Wood' },
-  { hex: '#9A3412', name: 'Burnt Sienna' },
-  { hex: '#1E293B', name: 'Midnight Charcoal' },
-];
 
 const ALL_ICONS = Object.keys(ICON_MAP);
 
@@ -80,25 +26,14 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [name, setName] = useState('');
-  const [color, setColor] = useState('#10B981');
   const [icon, setIcon] = useState('Tag');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [isDeletingCategory, setIsDeletingCategory] = useState<boolean>(false);
 
-  // Search states for color and icon pickers
-  const [colorSearch, setColorSearch] = useState('');
+  // Search state for icon picker
   const [iconSearch, setIconSearch] = useState('');
-
-  // Filtered colors
-  const filteredColors = useMemo(() => {
-    if (!colorSearch.trim()) return EXTENDED_COLOR_PRESETS;
-    const q = colorSearch.toLowerCase().trim();
-    return EXTENDED_COLOR_PRESETS.filter(
-      (c) => c.name.toLowerCase().includes(q) || c.hex.toLowerCase().includes(q)
-    );
-  }, [colorSearch]);
 
   // Filtered icons
   const filteredIcons = useMemo(() => {
@@ -116,7 +51,6 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
     }
     setEditingCategory(cat);
     setName(cat.name);
-    setColor(cat.color);
     setIcon(cat.icon);
     setError(null);
     setSuccessToast(null);
@@ -125,10 +59,8 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   const cancelEdit = () => {
     setEditingCategory(null);
     setName('');
-    setColor('#10B981');
     setIcon('Tag');
     setError(null);
-    setColorSearch('');
     setIconSearch('');
   };
 
@@ -147,14 +79,18 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
       const categoryTitle = name.trim();
 
       if (isEdit) {
-        await onUpdateCategory(editingCategory.id, { name: categoryTitle, color, icon });
+        await onUpdateCategory(editingCategory.id, {
+          name: categoryTitle,
+          color: editingCategory.color,
+          icon,
+        });
         setSuccessToast(`✨ "${categoryTitle}" updated successfully!`);
       } else {
-        await onCreateCategory({ name: categoryTitle, color, icon });
-        setSuccessToast(`🎉 "${categoryTitle}" created & added to your categories!`);
+        // System automatically selects a unique color from 1,000+ color arsenal
+        await onCreateCategory({ name: categoryTitle, color: '', icon });
+        setSuccessToast(`🎉 "${categoryTitle}" created with a unique system color!`);
       }
 
-      // Keep success feedback visible for 1.2s then gracefully close modal
       setTimeout(() => {
         setSuccessToast(null);
         cancelEdit();
@@ -173,12 +109,14 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
         <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
           <div>
             <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Manage Categories</h2>
-            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">Configure names, colors, and icons</p>
+            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+              Configure names and icons • Unique colors assigned automatically
+            </p>
           </div>
           <button
             onClick={onClose}
             disabled={loading}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -215,74 +153,47 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
                   type="button"
                   onClick={cancelEdit}
                   disabled={loading}
-                  className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium disabled:opacity-40"
+                  className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium disabled:opacity-40 cursor-pointer"
                 >
                   Cancel
                 </button>
               )}
             </div>
 
-            {/* Name Input & Live Preview */}
+            {/* Category Name Input */}
             <div>
               <label className="block text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
                 Category Name
               </label>
-              <div className="flex items-center space-x-2">
-                {/* Live Badge Preview */}
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm flex-shrink-0 transition-transform hover:scale-105"
-                  style={{ backgroundColor: color }}
-                  title="Live Preview"
-                >
-                  {renderCategoryIcon(icon, { className: 'w-4 h-4' })}
-                </div>
-
-                <input
-                  type="text"
-                  required
-                  disabled={loading}
-                  placeholder="e.g. Subscriptions, Groceries, Gym"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none disabled:opacity-50"
-                />
-              </div>
+              <input
+                type="text"
+                required
+                disabled={loading}
+                placeholder="e.g. Subscriptions, Groceries, Gym"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none disabled:opacity-50"
+              />
             </div>
 
-            {/* Color Palette with Dedicated Search */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  Select Color ({filteredColors.length})
-                </label>
-                <div className="relative w-28 sm:w-36">
-                  <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Search color..."
-                    value={colorSearch}
-                    onChange={(e) => setColorSearch(e.target.value)}
-                    className="w-full pl-6 pr-2 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-emerald-500"
-                  />
-                </div>
+            {/* System Color Assignment Badge */}
+            <div className="flex items-center space-x-2.5 p-2.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-800/60">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm flex-shrink-0"
+                style={{ backgroundColor: editingCategory?.color || '#10B981' }}
+              >
+                {renderCategoryIcon(icon, { className: 'w-4 h-4' })}
               </div>
-
-              <div className="flex flex-wrap items-center gap-1.5 max-h-24 overflow-y-auto p-2 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/80 rounded-xl">
-                {filteredColors.map((c) => (
-                  <button
-                    key={c.hex}
-                    type="button"
-                    onClick={() => setColor(c.hex)}
-                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm relative group"
-                    style={{ backgroundColor: c.hex }}
-                    title={`${c.name} (${c.hex})`}
-                  >
-                    {color === c.hex && <Check className="w-3 h-3 text-white stroke-[3]" />}
-                  </button>
-                ))}
-                {filteredColors.length === 0 && (
-                  <span className="text-[10px] text-slate-400 p-1">No colors match "{colorSearch}"</span>
-                )}
+              <div className="min-w-0 flex-1">
+                <span className="font-bold text-emerald-900 dark:text-emerald-200 text-xs flex items-center space-x-1">
+                  <Palette className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>{editingCategory ? 'Assigned System Color' : 'Auto-Assigned Unique Color'}</span>
+                </span>
+                <p className="text-[10px] text-emerald-700 dark:text-emerald-400 leading-tight mt-0.5 truncate">
+                  {editingCategory
+                    ? `Color code: ${editingCategory.color} (system managed)`
+                    : 'System selects a guaranteed unique color from its 1,000+ color arsenal.'}
+                </p>
               </div>
             </div>
 
@@ -304,13 +215,13 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-1.5 max-h-28 overflow-y-auto p-2 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/80 rounded-xl">
+              <div className="flex flex-wrap items-center gap-1.5 max-h-32 overflow-y-auto p-2 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/80 rounded-xl">
                 {filteredIcons.map((iconName) => (
                   <button
                     key={iconName}
                     type="button"
                     onClick={() => setIcon(iconName)}
-                    className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${
+                    className={`p-1.5 rounded-lg transition-all flex items-center justify-center cursor-pointer ${
                       icon === iconName
                         ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-400 dark:border-emerald-600 shadow-sm scale-105'
                         : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
@@ -326,11 +237,11 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
               </div>
             </div>
 
-            {/* Submit Button with Dynamic Spinner State */}
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2 active:scale-[0.99]"
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2 active:scale-[0.99] cursor-pointer"
             >
               {loading ? (
                 <>
@@ -361,6 +272,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
                     <div
                       className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-white shadow-sm flex-shrink-0"
                       style={{ backgroundColor: cat.color }}
+                      title={`Color: ${cat.color}`}
                     >
                       {renderCategoryIcon(cat.icon, { className: 'w-3 h-3 sm:w-3.5 sm:h-3.5' })}
                     </div>
@@ -388,14 +300,14 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
                       <>
                         <button
                           onClick={() => startEdit(cat)}
-                          className="p-1 sm:p-1.5 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                          className="p-1 sm:p-1.5 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
                           title="Edit Category"
                         >
                           <Edit2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         </button>
                         <button
                           onClick={() => setCategoryToDelete(cat)}
-                          className="p-1 sm:p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                          className="p-1 sm:p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
                           title="Delete Category"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
