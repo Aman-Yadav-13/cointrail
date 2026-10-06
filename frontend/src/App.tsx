@@ -374,17 +374,39 @@ export function App() {
           {loading && (
             <div className="absolute inset-0 bg-white/50 dark:bg-slate-950/65 backdrop-blur-[3px] rounded-3xl flex flex-col items-center justify-center z-30 pointer-events-none transition-all duration-300">
               <div className="bg-white/95 dark:bg-slate-900/95 border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-emerald-500/10 rounded-3xl p-5 sm:p-6 flex flex-col items-center max-w-[260px] text-center transform scale-100 animate-in fade-in zoom-in-95 duration-200">
-                {/* 3D Flipping Gold Coin with Orbiting Trail Ring */}
-                <div className="relative w-14 h-14 mb-3.5 flex items-center justify-center">
-                  {/* Orbiting gradient trail ring */}
-                  <div className="absolute inset-0 rounded-full border-2 border-emerald-500/20 border-t-emerald-400 border-r-teal-300 animate-orbit-trail" />
+                {/* Custom Brand 3D Flipping Coin with Orbiting Trail Ring */}
+                <div className="relative w-16 h-16 mb-3.5 flex items-center justify-center animate-coin-float">
+                  {/* Orbiting Speed Trail Ring with glowing comet head */}
+                  <div className="absolute inset-0 rounded-full border-2 border-emerald-500/15 border-t-emerald-400 border-r-teal-300 animate-orbit-trail" />
                   
-                  {/* Outer subtle soft glow */}
-                  <div className="absolute inset-1 rounded-full bg-amber-400/15 dark:bg-amber-400/20 blur-md animate-pulse" />
+                  {/* Ambient Glow Aura */}
+                  <div className="absolute inset-1 rounded-full bg-emerald-500/20 dark:bg-emerald-400/25 blur-lg" />
 
-                  {/* 3D Flipping Coin */}
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 border-2 border-amber-300/80 shadow-md flex items-center justify-center text-amber-950 font-black animate-coin-flip">
-                    <span className="text-base select-none leading-none">🪙</span>
+                  {/* Minted CoinTrail 3D Coin (Emerald & Metallic Silver/Chrome finish) */}
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-400 via-emerald-600 to-teal-800 p-[2px] shadow-lg shadow-emerald-600/30 animate-coin-flip">
+                    {/* Inner Coin Rim & Minted Relief */}
+                    <div className="w-full h-full rounded-full bg-gradient-to-tr from-slate-900 via-emerald-950 to-slate-900 border border-emerald-300/40 flex items-center justify-center relative overflow-hidden">
+                      {/* Diagonal light sheen reflection */}
+                      <div className="absolute -inset-full bg-gradient-to-r from-transparent via-white/25 to-transparent rotate-45 transform" />
+
+                      {/* Bespoke CoinTrail Glyph: Orbit node & Growth Trail Wave */}
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="w-6 h-6 text-emerald-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        {/* Coin Core */}
+                        <circle cx="12" cy="12" r="3.5" className="fill-emerald-400/30" />
+                        {/* The Trail: Swooping upward dynamic curve */}
+                        <path d="M4 17C7 15 9.5 12.5 12 8C14 4.5 17 4 20 4" />
+                        {/* Arrow tip at trail apex */}
+                        <path d="M16 4h4v4" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
 
