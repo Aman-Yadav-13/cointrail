@@ -5,7 +5,6 @@ import {
   Pie,
   Cell,
   Sector,
-  Tooltip,
 } from 'recharts';
 import {
   PieChart as PieIcon,
@@ -31,6 +30,7 @@ const MONTH_NAMES = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
 ];
 
+// Clean active shape: expands outward without inner intrusion or floating box
 const renderActiveShape = (props: any) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
   return (
@@ -38,21 +38,11 @@ const renderActiveShape = (props: any) => {
       <Sector
         cx={cx}
         cy={cy}
-        innerRadius={innerRadius - 2}
-        outerRadius={outerRadius + 5}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius + 6}
         startAngle={startAngle}
         endAngle={endAngle}
         fill={fill}
-      />
-      <Sector
-        cx={cx}
-        cy={cy}
-        startAngle={startAngle}
-        endAngle={endAngle}
-        innerRadius={outerRadius + 7}
-        outerRadius={outerRadius + 10}
-        fill={fill}
-        opacity={0.45}
       />
     </g>
   );
@@ -66,13 +56,14 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
-  // Local independent filters: defaults to current month & current year
+  // Local independent filters
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
 
   const [data, setData] = useState<CategorySummary[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
+  // Active slice index (pinned takes precedence over hover)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [pinnedIndex, setPinnedIndex] = useState<number | null>(null);
 
@@ -106,6 +97,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
   const handleSliceClick = (_: any, index: number) => {
     if (pinnedIndex === index) {
       setPinnedIndex(null);
+      setHoveredIndex(null);
     } else {
       setPinnedIndex(index);
     }
@@ -114,6 +106,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
   const handleLegendClick = (index: number) => {
     if (pinnedIndex === index) {
       setPinnedIndex(null);
+      setHoveredIndex(null);
     } else {
       setPinnedIndex(index);
     }
@@ -153,7 +146,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
           </p>
         </div>
 
-        {/* Filter Controls: Month Dropdown + Year Stepper + Categories Button */}
+        {/* Filter Controls */}
         <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
           {/* Month Selector */}
           <select
@@ -226,8 +219,8 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
         </div>
       ) : (
         <div className="flex-1 flex flex-col sm:flex-row items-center pt-2 gap-3 sm:gap-6 min-w-0">
-          {/* Donut Chart with Center Details */}
-          <div className="w-full sm:w-1/2 h-56 sm:h-64 relative flex-shrink-0 min-w-0">
+          {/* Donut Chart with Crisp Center Details (NO floating tooltip overlap) */}
+          <div className="w-full sm:w-1/2 h-56 sm:h-64 relative flex-shrink-0 min-w-0 flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%" minHeight={200}>
               <PieChart>
                 <Pie
@@ -236,8 +229,8 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
                   nameKey="categoryName"
                   cx="50%"
                   cy="50%"
-                  innerRadius={52}
-                  outerRadius={78}
+                  innerRadius={56}
+                  outerRadius={80}
                   paddingAngle={3}
                   {...({
                     activeIndex: activeIndex !== null ? activeIndex : undefined,
@@ -259,55 +252,30 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
                       stroke="currentColor"
                       className="text-white dark:text-slate-800 transition-all duration-200"
                       strokeWidth={activeIndex === index ? 3 : 2}
-                      opacity={activeIndex !== null && activeIndex !== index ? 0.45 : 1}
+                      opacity={activeIndex !== null && activeIndex !== index ? 0.4 : 1}
                     />
                   ))}
                 </Pie>
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (!active || !payload || !payload.length) return null;
-                    const item = payload[0].payload as CategorySummary;
-                    const pct = item.percentage ?? ((item.totalAmount / (total || 1)) * 100).toFixed(0);
-                    return (
-                      <div className="bg-slate-900/95 text-white backdrop-blur-md px-3 py-2 rounded-xl border border-slate-700/80 shadow-2xl text-xs z-50 pointer-events-none">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span
-                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: item.color }}
-                          />
-                          <span className="font-semibold text-slate-100">{item.categoryName}</span>
-                        </div>
-                        <div className="text-sm font-bold text-white">
-                          {formatCurrency(item.totalAmount, currency.symbol)}
-                        </div>
-                        <div className="text-[10px] text-slate-300 mt-1 flex items-center justify-between gap-3">
-                          <span>{pct}% of monthly total</span>
-                          <span>{item.count} {item.count === 1 ? 'txn' : 'txns'}</span>
-                        </div>
-                      </div>
-                    );
-                  }}
-                />
               </PieChart>
             </ResponsiveContainer>
 
-            {/* Dynamic Center Metric */}
+            {/* Single Source of Truth: Clean Center Donut Info */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-3 text-center">
               {activeCategory ? (
-                <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-150 max-w-[110px] sm:max-w-[125px]">
+                <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-150 max-w-[115px] sm:max-w-[130px]">
                   <div
-                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center mb-0.5 shadow-sm border border-white/20"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center mb-1 shadow-sm border border-white/20"
                     style={{
                       backgroundColor: `${activeCategory.color || '#10b981'}25`,
                       color: activeCategory.color || '#10b981',
                     }}
                   >
-                    {renderCategoryIcon(activeCategory.icon, { className: 'w-3.5 h-3.5' })}
+                    {renderCategoryIcon(activeCategory.icon, { className: 'w-4 h-4' })}
                   </div>
                   <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-100 truncate w-full leading-tight">
                     {activeCategory.categoryName}
                   </span>
-                  <span className="text-xs sm:text-sm font-extrabold text-slate-950 dark:text-white leading-tight mt-0.5">
+                  <span className="text-xs sm:text-sm font-black text-slate-950 dark:text-white leading-tight mt-0.5">
                     {formatCurrency(activeCategory.totalAmount, currency.symbol)}
                   </span>
                   <span
@@ -326,7 +294,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
                   <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                     {MONTH_NAMES[selectedMonth - 1]} Total
                   </span>
-                  <span className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">
+                  <span className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">
                     {formatCurrency(total, currency.symbol)}
                   </span>
                   <span className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
@@ -337,7 +305,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
             </div>
           </div>
 
-          {/* Interactive Legend List */}
+          {/* Synchronized Category List (Clickable to Inspect) */}
           <div className="w-full sm:w-1/2 flex flex-col min-w-0">
             <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 px-1 pb-1 font-medium">
               <span>Category</span>
@@ -360,7 +328,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
                     }}
                     className={`flex items-center justify-between p-2 rounded-xl transition-all text-xs border text-left cursor-pointer ${
                       isSelected
-                        ? 'bg-slate-100 dark:bg-slate-700/80 border-emerald-500/60 dark:border-emerald-500/80 shadow-xs ring-1 ring-emerald-500/30'
+                        ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-500/80 dark:border-emerald-500/80 shadow-xs ring-1 ring-emerald-500/40'
                         : 'bg-transparent hover:bg-slate-50 dark:hover:bg-slate-700/40 border-transparent hover:border-slate-200/60 dark:hover:border-slate-700/60'
                     }`}
                   >
@@ -369,7 +337,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
                         className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm transition-transform"
                         style={{
                           backgroundColor: cat.color,
-                          transform: isSelected ? 'scale(1.2)' : 'scale(1)',
+                          transform: isSelected ? 'scale(1.25)' : 'scale(1)',
                         }}
                       />
                       <span
@@ -378,11 +346,11 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
                       >
                         {renderCategoryIcon(cat.icon, { className: 'w-3.5 h-3.5' })}
                       </span>
-                      <span className={`truncate ${isSelected ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200'}`}>
+                      <span className={`truncate ${isSelected ? 'font-bold text-slate-950 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200'}`}>
                         {cat.categoryName}
                       </span>
                       {isItemPinned && (
-                        <span className="text-[9px] bg-emerald-500 text-white rounded-full px-1.5 py-0.2 font-bold ml-1">
+                        <span className="text-[9px] bg-emerald-600 text-white rounded-full px-1.5 py-0.2 font-bold ml-1">
                           pinned
                         </span>
                       )}
@@ -406,7 +374,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
         </div>
       )}
 
-      {/* Footer Info */}
+      {/* Footer Info & Reset Action */}
       {data.length > 0 && !loading && (
         <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500">
           <span className="flex items-center space-x-1">
@@ -418,7 +386,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
               onClick={handleResetPin}
               className="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline cursor-pointer"
             >
-              Reset
+              Reset to Total
             </button>
           )}
         </div>
