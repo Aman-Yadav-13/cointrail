@@ -380,48 +380,57 @@ export function App() {
           onStepMonth={handleStepMonth}
         />
 
-        {/* Hero Spending Section (Seamless between Mobile, Tablet & Desktop) */}
-        <HeroSpendSection
-          stats={overviewStats}
-          currency={currency}
-          periodLabel={periodLabel}
-          onOpenAddExpense={() => {
-            setEditingExpense(null);
-            setIsExpenseModalOpen(true);
-          }}
-        />
-
-        {/* Visualizations Section: Category Breakdown + Annual Spending Trend */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 relative min-w-0 w-full">
+        {/* Dashboard Sections with Unified Loading Blur & Indicator */}
+        <div className="relative space-y-3.5 sm:space-y-6">
           {loading && (
-            <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-[1px] rounded-2xl flex items-center justify-center z-10">
-              <Loader2 className="w-6 h-6 animate-spin text-emerald-600 dark:text-emerald-400" />
+            <div className="absolute inset-0 bg-white/45 dark:bg-slate-900/50 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center z-20 pointer-events-none transition-all">
+              <div className="bg-white/90 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 shadow-xl rounded-2xl px-5 py-3.5 flex items-center space-x-3">
+                <Loader2 className="w-5 h-5 animate-spin text-emerald-600 dark:text-emerald-400" />
+                <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  Updating records...
+                </span>
+              </div>
             </div>
           )}
-          <CategoryPieChart
-            data={categorySummary}
+
+          {/* Hero Spending Section (Seamless between Mobile, Tablet & Desktop) */}
+          <HeroSpendSection
+            stats={overviewStats}
             currency={currency}
             periodLabel={periodLabel}
+            onOpenAddExpense={() => {
+              setEditingExpense(null);
+              setIsExpenseModalOpen(true);
+            }}
           />
-          <MonthlyBarChart
-            data={monthlyTrend}
+
+          {/* Visualizations Section: Category Breakdown + Annual Spending Trend */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 relative min-w-0 w-full">
+            <CategoryPieChart
+              data={categorySummary}
+              currency={currency}
+              periodLabel={periodLabel}
+            />
+            <MonthlyBarChart
+              data={monthlyTrend}
+              currency={currency}
+              selectedYear={selectedYear}
+              onYearChange={(year) => setSelectedYear(year)}
+            />
+          </div>
+
+          {/* Transactions Table */}
+          <ExpenseTable
+            expenses={expenses}
+            categories={categories}
             currency={currency}
-            selectedYear={selectedYear}
-            onYearChange={(year) => setSelectedYear(year)}
+            onEdit={(entry) => {
+              setEditingExpense(entry);
+              setIsExpenseModalOpen(true);
+            }}
+            onDelete={handleDeleteExpense}
           />
         </div>
-
-        {/* Transactions Table */}
-        <ExpenseTable
-          expenses={expenses}
-          categories={categories}
-          currency={currency}
-          onEdit={(entry) => {
-            setEditingExpense(entry);
-            setIsExpenseModalOpen(true);
-          }}
-          onDelete={handleDeleteExpense}
-        />
 
         {/* Mobile Floating Action Button (FAB) for One-Thumb Expense Logging */}
         <button
