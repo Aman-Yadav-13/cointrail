@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Settings2, Calendar, Sun, Moon, LogIn, LogOut } from 'lucide-react';
+import { Plus, Calendar, Sun, Moon, LogIn, LogOut, Tag } from 'lucide-react';
 import { CURRENCIES, type Currency, type User } from '../types';
 
 interface NavbarProps {
@@ -120,12 +120,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Manage Categories Button */}
             <button
               onClick={onOpenCategories}
-              className="p-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl flex items-center space-x-1.5 transition-colors border border-slate-200 dark:border-slate-700"
-              title="Manage Categories"
-              aria-label="Manage categories"
+              className="px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 active:scale-95 rounded-xl flex items-center space-x-1.5 transition-all border border-emerald-200 dark:border-emerald-800/80 shadow-xs flex-shrink-0"
+              title="Add & Manage Categories"
+              aria-label="Add and manage categories"
             >
-              <Settings2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 dark:text-slate-400" />
-              <span className="hidden md:inline">Categories</span>
+              <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400 stroke-[2.2]" />
+              <span className="text-[11px] sm:text-xs font-bold">Categories</span>
             </button>
 
             {/* Add Expense Button (hidden on mobile since Floating Action Button handles it) */}

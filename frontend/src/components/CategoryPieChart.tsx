@@ -5,7 +5,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { PieChart as PieIcon } from 'lucide-react';
+import { PieChart as PieIcon, Tag } from 'lucide-react';
 import type { CategorySummary, Currency } from '../types';
 import { formatCurrency, renderCategoryIcon } from '../utils/formatters';
 
@@ -13,9 +13,15 @@ interface CategoryPieChartProps {
   data: CategorySummary[];
   currency: Currency;
   periodLabel: string;
+  onOpenCategories?: () => void;
 }
 
-export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, currency, periodLabel }) => {
+export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
+  data,
+  currency,
+  periodLabel,
+  onOpenCategories,
+}) => {
   const total = data.reduce((acc, curr) => acc + curr.totalAmount, 0);
 
   return (
@@ -25,8 +31,20 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, curren
           <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">Category Breakdown</h3>
           <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">Distribution for {periodLabel}</p>
         </div>
-        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-          <PieIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        <div className="flex items-center space-x-1.5">
+          {onOpenCategories && (
+            <button
+              onClick={onOpenCategories}
+              className="text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 border border-emerald-200/80 dark:border-emerald-800 flex items-center space-x-1 transition-all active:scale-95"
+              title="Add or Manage Categories"
+            >
+              <Tag className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+              <span>Categories</span>
+            </button>
+          )}
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-500 dark:text-slate-400 flex items-center justify-center">
+            <PieIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          </div>
         </div>
       </div>
 

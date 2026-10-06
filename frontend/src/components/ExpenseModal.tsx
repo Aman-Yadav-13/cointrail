@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import type { Category, Currency, ExpenseEntry, ExpenseRequest } from '../types';
 import { formatDateToLocalISO } from '../utils/formatters';
 
@@ -10,6 +10,7 @@ interface ExpenseModalProps {
   currency: Currency;
   initialEntry?: ExpenseEntry | null;
   onSubmit: (data: ExpenseRequest) => Promise<void>;
+  onOpenManageCategories?: () => void;
 }
 
 export const ExpenseModal: React.FC<ExpenseModalProps> = ({
@@ -19,6 +20,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   currency,
   initialEntry,
   onSubmit,
+  onOpenManageCategories,
 }) => {
   const [amount, setAmount] = useState<string>('');
   const [categoryId, setCategoryId] = useState<number>(categories[0]?.id || 1);
@@ -128,9 +130,24 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
 
           {/* Category Dropdown */}
           <div>
-            <label className="block text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-              Category
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Category
+              </label>
+              {onOpenManageCategories && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenManageCategories();
+                  }}
+                  className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 flex items-center space-x-1 transition-colors"
+                >
+                  <Plus className="w-3 h-3 stroke-[2.5]" />
+                  <span>New Category</span>
+                </button>
+              )}
+            </div>
             <div className="relative">
               <select
                 value={categoryId}

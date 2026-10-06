@@ -438,6 +438,7 @@ export function App() {
               data={categorySummary}
               currency={currency}
               periodLabel={periodLabel}
+              onOpenCategories={() => setIsCategoryModalOpen(true)}
             />
             <MonthlyBarChart
               data={monthlyTrend}
@@ -484,6 +485,7 @@ export function App() {
         currency={currency}
         initialEntry={editingExpense}
         onSubmit={handleSaveExpense}
+        onOpenManageCategories={() => setIsCategoryModalOpen(true)}
       />
 
       <CategoryModal
