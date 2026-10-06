@@ -374,39 +374,27 @@ export function App() {
           {loading && (
             <div className="absolute inset-0 bg-white/50 dark:bg-slate-950/65 backdrop-blur-[3px] rounded-3xl flex flex-col items-center justify-center z-30 pointer-events-none transition-all duration-300">
               <div className="bg-white/95 dark:bg-slate-900/95 border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-emerald-500/10 rounded-3xl p-5 sm:p-6 flex flex-col items-center max-w-[260px] text-center transform scale-100 animate-in fade-in zoom-in-95 duration-200">
-                {/* Custom Brand 3D Flipping Coin with Orbiting Trail Ring */}
-                <div className="relative w-16 h-16 mb-3.5 flex items-center justify-center animate-coin-float">
-                  {/* Orbiting Speed Trail Ring with glowing comet head */}
-                  <div className="absolute inset-0 rounded-full border-2 border-emerald-500/15 border-t-emerald-400 border-r-teal-300 animate-orbit-trail" />
-                  
-                  {/* Ambient Glow Aura */}
-                  <div className="absolute inset-1 rounded-full bg-emerald-500/20 dark:bg-emerald-400/25 blur-lg" />
+                {/* Gyroscopic Quantum Orbit: Dual Rings with Pulsing Node and Accelerating Comet */}
+                <div className="relative w-16 h-16 mb-4 flex items-center justify-center">
+                  {/* Outer Gyroscopic Orbital Ring with 3D tilt */}
+                  <div className="absolute inset-0 rounded-full border-[1.5px] border-emerald-400/30 border-t-emerald-300 border-l-teal-200 animate-gyro-ring" />
 
-                  {/* Minted CoinTrail 3D Coin (Emerald & Metallic Silver/Chrome finish) */}
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-400 via-emerald-600 to-teal-800 p-[2px] shadow-lg shadow-emerald-600/30 animate-coin-flip">
-                    {/* Inner Coin Rim & Minted Relief */}
-                    <div className="w-full h-full rounded-full bg-gradient-to-tr from-slate-900 via-emerald-950 to-slate-900 border border-emerald-300/40 flex items-center justify-center relative overflow-hidden">
-                      {/* Diagonal light sheen reflection */}
-                      <div className="absolute -inset-full bg-gradient-to-r from-transparent via-white/25 to-transparent rotate-45 transform" />
+                  {/* Inner Fast High-Velocity Radar Trail */}
+                  <div className="absolute inset-2 rounded-full border-[2px] border-emerald-500/10 border-r-emerald-400 border-t-emerald-400 animate-radar-spin" />
 
-                      {/* Bespoke CoinTrail Glyph: Orbit node & Growth Trail Wave */}
-                      <svg
-                        viewBox="0 0 24 24"
-                        className="w-6 h-6 text-emerald-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        {/* Coin Core */}
-                        <circle cx="12" cy="12" r="3.5" className="fill-emerald-400/30" />
-                        {/* The Trail: Swooping upward dynamic curve */}
-                        <path d="M4 17C7 15 9.5 12.5 12 8C14 4.5 17 4 20 4" />
-                        {/* Arrow tip at trail apex */}
-                        <path d="M16 4h4v4" />
-                      </svg>
+                  {/* Radial ambient glow backdrop */}
+                  <div className="absolute inset-2 rounded-full bg-emerald-500/20 blur-md animate-pulse" />
+
+                  {/* Core Glowing Emerald Coin Node */}
+                  <div className="relative w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/50 animate-core-breathe">
+                    <div className="w-6 h-6 rounded-full bg-slate-950/80 backdrop-blur-sm border border-emerald-300/60 flex items-center justify-center">
+                      <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-emerald-400 to-teal-200 shadow-sm shadow-emerald-300" />
                     </div>
+                  </div>
+
+                  {/* Tiny comet satellite orbiting */}
+                  <div className="absolute inset-0 animate-radar-spin pointer-events-none">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_#34d399] -top-0.5 left-1/2 -translate-x-1/2" />
                   </div>
                 </div>
 

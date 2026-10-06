@@ -24,19 +24,7 @@ html:not(.dark) body {
   color: #0f172a;
 }
 
-@keyframes coin-flip {
-  0% {
-    transform: perspective(600px) rotateY(0deg) scale(1);
-  }
-  50% {
-    transform: perspective(600px) rotateY(180deg) scale(1.08);
-  }
-  100% {
-    transform: perspective(600px) rotateY(360deg) scale(1);
-  }
-}
-
-@keyframes orbit-trail {
+@keyframes radar-spin {
   0% {
     transform: rotate(0deg);
   }
@@ -45,22 +33,40 @@ html:not(.dark) body {
   }
 }
 
-@keyframes coin-float {
-  0%, 100% {
-    transform: translateY(0px);
+@keyframes gyro-wobble {
+  0% {
+    transform: rotateX(65deg) rotateY(0deg) rotateZ(0deg);
   }
   50% {
-    transform: translateY(-4px);
+    transform: rotateX(65deg) rotateY(15deg) rotateZ(180deg);
+  }
+  100% {
+    transform: rotateX(65deg) rotateY(0deg) rotateZ(360deg);
   }
 }
 
-.animate-coin-flip {
-  animation: coin-flip 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+@keyframes core-breathe {
+  0%, 100% {
+    transform: scale(0.92);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.8), 0 0 50px rgba(20, 184, 166, 0.4);
+  }
+}
+
+.animate-radar-spin {
+  animation: radar-spin 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-gyro-ring {
+  animation: gyro-wobble 3.5s linear infinite;
   transform-style: preserve-3d;
 }
 
-.animate-orbit-trail {
-  animation: orbit-trail 2.4s linear infinite;
+.animate-core-breathe {
+  animation: core-breathe 2s ease-in-out infinite;
 }
 
 .animate-coin-float {
