@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ResponsiveContainer,
   PieChart,
@@ -7,18 +7,30 @@ import {
   Sector,
   Tooltip,
 } from 'recharts';
-import { PieChart as PieIcon, Tag, RotateCcw, Info } from 'lucide-react';
+import {
+  PieChart as PieIcon,
+  Tag,
+  RotateCcw,
+  Info,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+} from 'lucide-react';
 import type { CategorySummary, Currency } from '../types';
+import { api } from '../services/api';
 import { formatCurrency, renderCategoryIcon } from '../utils/formatters';
 
 interface CategoryPieChartProps {
-  data: CategorySummary[];
   currency: Currency;
-  periodLabel: string;
+  refreshKey?: number;
   onOpenCategories?: () => void;
 }
 
-// Custom Active Shape for Pie slice with subtle outer glow ring
+const MONTH_NAMES = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+];
+
 const renderActiveShape = (props: any) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
   return (
@@ -47,16 +59,49 @@ const renderActiveShape = (props: any) => {
 };
 
 export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
-  data,
   currency,
-  periodLabel,
+  refreshKey = 0,
   onOpenCategories,
 }) => {
+  const currentMonth = new Date().getMonth() + 1;
+  const currentYear = new Date().getFullYear();
+
+  // Local independent filters: defaults to current month & current year
+  const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+
+  const [data, setData] = useState<CategorySummary[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [pinnedIndex, setPinnedIndex] = useState<number | null>(null);
 
   const activeIndex = pinnedIndex !== null ? pinnedIndex : hoveredIndex;
   const total = data.reduce((acc, curr) => acc + curr.totalAmount, 0);
+
+  // Fetch category summary for the selected month and year
+  const loadCategoryData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+      const monthStr = selectedMonth < 10 ? `0${selectedMonth}` : `${selectedMonth}`;
+      const startDate = `${selectedYear}-${monthStr}-01`;
+      const endDate = `${selectedYear}-${monthStr}-${daysInMonth < 10 ? '0' + daysInMonth : daysInMonth}`;
+
+      const res = await api.getCategorySummary(startDate, endDate);
+      setData(res);
+      setPinnedIndex(null);
+      setHoveredIndex(null);
+    } catch (err) {
+      console.error('Failed to load category summary:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedYear, selectedMonth]);
+
+  useEffect(() => {
+    loadCategoryData();
+  }, [loadCategoryData, refreshKey]);
 
   const handleSliceClick = (_: any, index: number) => {
     if (pinnedIndex === index) {
@@ -83,17 +128,19 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
 
   return (
     <div className="bg-white dark:bg-slate-800/90 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col h-full min-w-0 w-full overflow-hidden transition-colors">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700/60">
-        <div>
+      {/* Header with Title and Month/Year Filters */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700/60 gap-2">
+        <div className="min-w-0">
           <div className="flex items-center space-x-2">
-            <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">Category Breakdown</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
+              Category Breakdown
+            </h3>
             {pinnedIndex !== null && (
               <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 font-semibold px-2 py-0.5 rounded-full flex items-center space-x-1">
                 <span>Inspecting</span>
                 <button
                   onClick={handleResetPin}
-                  className="hover:text-emerald-900 dark:hover:text-white transition-colors"
+                  className="hover:text-emerald-900 dark:hover:text-white transition-colors cursor-pointer"
                   title="Reset inspection"
                 >
                   <RotateCcw className="w-2.5 h-2.5 inline ml-0.5" />
@@ -102,33 +149,80 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
             )}
           </div>
           <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
-            Distribution for {periodLabel}
+            {MONTH_NAMES[selectedMonth - 1]} {selectedYear} • {formatCurrency(total, currency.symbol)} total
           </p>
         </div>
-        <div className="flex items-center space-x-1.5">
+
+        {/* Filter Controls: Month Dropdown + Year Stepper + Categories Button */}
+        <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
+          {/* Month Selector */}
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+            className="bg-slate-100 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600/70 text-xs font-semibold rounded-xl px-2 py-1 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+            aria-label="Filter Month"
+          >
+            {MONTH_NAMES.map((name, idx) => (
+              <option key={name} value={idx + 1} className="dark:bg-slate-800">
+                {name}
+              </option>
+            ))}
+          </select>
+
+          {/* Year Stepper */}
+          <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-xl">
+            <button
+              onClick={() => setSelectedYear((y) => y - 1)}
+              className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded-lg transition-colors cursor-pointer"
+              title="Previous Year"
+            >
+              <ChevronLeft className="w-3 h-3" />
+            </button>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-100 px-1">
+              {selectedYear}
+            </span>
+            <button
+              onClick={() => setSelectedYear((y) => y + 1)}
+              className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded-lg transition-colors cursor-pointer"
+              title="Next Year"
+            >
+              <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
+
           {onOpenCategories && (
             <button
               onClick={onOpenCategories}
-              className="text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 border border-emerald-200/80 dark:border-emerald-800 flex items-center space-x-1 transition-all active:scale-95"
+              className="text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 border border-emerald-200/80 dark:border-emerald-800 flex items-center space-x-1 transition-all active:scale-95 cursor-pointer"
               title="Add or Manage Categories"
             >
               <Tag className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-              <span>Categories</span>
+              <span className="hidden sm:inline">Categories</span>
             </button>
           )}
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-500 dark:text-slate-400 flex items-center justify-center">
-            <PieIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+
+          <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-500 dark:text-slate-400 flex items-center justify-center flex-shrink-0">
+            <PieIcon className="w-3.5 h-3.5" />
           </div>
         </div>
       </div>
 
-      {data.length === 0 ? (
+      {loading ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 min-h-[220px]">
+          <Loader2 className="w-6 h-6 animate-spin text-emerald-500 mb-2" />
+          <p className="text-xs text-slate-400">Loading breakdown...</p>
+        </div>
+      ) : data.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 text-center text-slate-400 min-h-[220px] sm:min-h-[260px]">
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center text-slate-300 dark:text-slate-500 mb-3">
             <PieIcon className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300">No expenses recorded</p>
-          <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 mt-1">Add expenses in this date range to view the breakdown</p>
+          <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300">
+            No expenses in {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
+          </p>
+          <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 mt-1">
+            Change the month/year filter or record an expense
+          </p>
         </div>
       ) : (
         <div className="flex-1 flex flex-col sm:flex-row items-center pt-2 gap-3 sm:gap-6 min-w-0">
@@ -187,7 +281,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
                           {formatCurrency(item.totalAmount, currency.symbol)}
                         </div>
                         <div className="text-[10px] text-slate-300 mt-1 flex items-center justify-between gap-3">
-                          <span>{pct}% of total</span>
+                          <span>{pct}% of monthly total</span>
                           <span>{item.count} {item.count === 1 ? 'txn' : 'txns'}</span>
                         </div>
                       </div>
@@ -197,7 +291,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
               </PieChart>
             </ResponsiveContainer>
 
-            {/* Dynamic Center Metric: Adapts to Hover & Click/Tap */}
+            {/* Dynamic Center Metric */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-3 text-center">
               {activeCategory ? (
                 <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-150 max-w-[110px] sm:max-w-[125px]">
@@ -230,7 +324,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
               ) : (
                 <div className="flex flex-col items-center justify-center">
                   <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                    Total Spent
+                    {MONTH_NAMES[selectedMonth - 1]} Total
                   </span>
                   <span className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">
                     {formatCurrency(total, currency.symbol)}
@@ -243,7 +337,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
             </div>
           </div>
 
-          {/* Category Legend List (Clickable & Hover-Synchronized) */}
+          {/* Interactive Legend List */}
           <div className="w-full sm:w-1/2 flex flex-col min-w-0">
             <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 px-1 pb-1 font-medium">
               <span>Category</span>
@@ -312,8 +406,8 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
         </div>
       )}
 
-      {/* Mobile Hint Banner */}
-      {data.length > 0 && (
+      {/* Footer Info */}
+      {data.length > 0 && !loading && (
         <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500">
           <span className="flex items-center space-x-1">
             <Info className="w-3 h-3 text-slate-400" />
@@ -322,7 +416,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
           {pinnedIndex !== null && (
             <button
               onClick={handleResetPin}
-              className="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline"
+              className="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline cursor-pointer"
             >
               Reset
             </button>

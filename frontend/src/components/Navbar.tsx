@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Calendar, Sun, Moon, LogIn, LogOut, Tag } from 'lucide-react';
+import { Plus, Sun, Moon, LogIn, LogOut, Tag } from 'lucide-react';
 import { CURRENCIES, type Currency, type User } from '../types';
 
 interface NavbarProps {
@@ -7,11 +7,6 @@ interface NavbarProps {
   onCurrencyChange: (c: Currency) => void;
   onOpenAddExpense: () => void;
   onOpenCategories: () => void;
-  dateFilterPreset: string;
-  onDateFilterChange: (preset: string) => void;
-  customStartDate: string;
-  customEndDate: string;
-  onCustomDateChange: (start: string, end: string) => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
   currentUser: User | null;
@@ -19,24 +14,11 @@ interface NavbarProps {
   onOpenAuth: () => void;
 }
 
-const PRESETS = [
-  { id: 'this-month', label: 'This Month' },
-  { id: 'last-month', label: 'Last Month' },
-  { id: 'this-year', label: 'This Year' },
-  { id: 'all', label: 'All Time' },
-  { id: 'custom', label: 'Custom' },
-];
-
 export const Navbar: React.FC<NavbarProps> = ({
   currentCurrency,
   onCurrencyChange,
   onOpenAddExpense,
   onOpenCategories,
-  dateFilterPreset,
-  onDateFilterChange,
-  customStartDate,
-  customEndDate,
-  onCustomDateChange,
   isDarkMode,
   onToggleDarkMode,
   currentUser,
@@ -59,27 +41,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
                 CoinTrail
               </span>
-              <span className="hidden lg:inline-block ml-2 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+              <span className="hidden sm:inline-block ml-2 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                 Expense Tracker
               </span>
             </div>
-          </div>
-
-          {/* Desktop Laptop Date Presets (>= lg) */}
-          <div className="hidden lg:flex items-center space-x-1 bg-slate-100 dark:bg-slate-800/90 p-1 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 border dark:border-slate-700/60 flex-shrink-0">
-            {PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                onClick={() => onDateFilterChange(preset.id)}
-                className={`px-2.5 lg:px-3 py-1.5 rounded-lg transition-all capitalize whitespace-nowrap ${
-                  dateFilterPreset === preset.id
-                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm font-semibold'
-                    : 'hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                {preset.label}
-              </button>
-            ))}
           </div>
 
           {/* Right Controls: Theme Toggle + Currency + Categories + Add Expense + Auth */}
@@ -87,7 +52,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Dark / Light Mode Toggle */}
             <button
               onClick={onToggleDarkMode}
-              className="p-1.5 sm:p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors border border-slate-200 dark:border-slate-700/70"
+              className="p-1.5 sm:p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors border border-slate-200 dark:border-slate-700/70 cursor-pointer"
               title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               aria-label="Toggle theme"
             >
@@ -106,55 +71,52 @@ export const Navbar: React.FC<NavbarProps> = ({
                   const selected = CURRENCIES.find((c) => c.code === e.target.value);
                   if (selected) onCurrencyChange(selected);
                 }}
-                className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-transparent dark:border-slate-700 rounded-xl px-1.5 sm:px-2.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:ring-2 focus:ring-emerald-500 transition-colors"
-                aria-label="Select currency"
+                className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl px-2 sm:px-2.5 py-1.5 sm:py-2 border border-slate-200 dark:border-slate-700/70 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                aria-label="Currency"
               >
                 {CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code} className="dark:bg-slate-800 dark:text-white">
-                    {c.symbol} <span className="hidden sm:inline">({c.code})</span>
+                  <option key={c.code} value={c.code}>
+                    {c.symbol} {c.code}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Manage Categories Button */}
-            <button
-              onClick={onOpenCategories}
-              className="px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 active:scale-95 rounded-xl flex items-center space-x-1.5 transition-all border border-emerald-200 dark:border-emerald-800/80 shadow-xs flex-shrink-0"
-              title="Add & Manage Categories"
-              aria-label="Add and manage categories"
-            >
-              <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400 stroke-[2.2]" />
-              <span className="text-[11px] sm:text-xs font-bold">Categories</span>
-            </button>
+            {/* Explicit Categories Pill Button */}
+            {currentUser && (
+              <button
+                onClick={onOpenCategories}
+                className="text-xs font-semibold px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 border border-emerald-300/80 dark:border-emerald-800 flex items-center space-x-1 sm:space-x-1.5 transition-all active:scale-95 shadow-xs cursor-pointer"
+                title="Manage Categories"
+              >
+                <Tag className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                <span className="font-bold text-[11px] sm:text-xs">Categories</span>
+              </button>
+            )}
 
-            {/* Add Expense Button (hidden on mobile since Floating Action Button handles it) */}
-            <button
-              onClick={onOpenAddExpense}
-              className="hidden sm:flex bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-medium text-xs sm:text-sm px-3 py-2 rounded-xl items-center space-x-1 shadow-md shadow-emerald-600/20 transition-all flex-shrink-0"
-              aria-label="Add Expense"
-            >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>Expense</span>
-            </button>
+            {/* Add Expense Button */}
+            {currentUser && (
+              <button
+                onClick={onOpenAddExpense}
+                className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl flex items-center space-x-1 sm:space-x-1.5 shadow-sm shadow-emerald-600/30 transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+                <span className="hidden xs:inline sm:inline">Add</span>
+                <span className="hidden sm:inline">Expense</span>
+              </button>
+            )}
 
-            {/* User Profile / Auth Actions */}
+            {/* Auth Button */}
             {currentUser ? (
-              <div className="flex items-center space-x-1 sm:space-x-1.5 pl-1 sm:pl-2 border-l border-slate-200 dark:border-slate-800">
-                <div
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs flex items-center justify-center shadow-sm flex-shrink-0"
-                  title={`Logged in as ${currentUser.fullName} (${currentUser.email})`}
-                >
-                  {currentUser.fullName ? currentUser.fullName.charAt(0).toUpperCase() : (currentUser.email ? currentUser.email.charAt(0).toUpperCase() : 'U')}
-                </div>
-                <span className="hidden md:inline-block text-xs font-bold text-slate-700 dark:text-slate-200 max-w-[100px] truncate">
-                  {currentUser.fullName.split(' ')[0]}
+              <div className="flex items-center space-x-1 sm:space-x-2 pl-1 border-l border-slate-200 dark:border-slate-700">
+                <span className="hidden md:inline-block text-xs font-semibold text-slate-700 dark:text-slate-300 max-w-[100px] truncate">
+                  {currentUser.fullName || currentUser.username}
                 </span>
                 <button
                   onClick={onLogout}
-                  className="p-1.5 sm:p-2 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors"
-                  title="Sign Out"
-                  aria-label="Sign Out"
+                  className="p-1.5 sm:p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-colors cursor-pointer"
+                  title="Logout"
+                  aria-label="Logout"
                 >
                   <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
@@ -162,7 +124,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <button
                 onClick={onOpenAuth}
-                className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl flex items-center space-x-1 shadow-md shadow-emerald-600/20 transition-all flex-shrink-0"
+                className="bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold px-3 py-1.5 sm:py-2 rounded-xl flex items-center space-x-1.5 shadow-sm transition-all cursor-pointer"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 <span>Sign In</span>
@@ -170,31 +132,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
         </div>
-
-        {/* Desktop Custom Date Range Bar (shown on desktop when 'custom' is active) */}
-        {dateFilterPreset === 'custom' && (
-          <div className="hidden lg:flex py-2.5 px-4 my-2 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 rounded-xl items-center justify-between gap-2.5 text-xs animate-in fade-in">
-            <div className="flex items-center space-x-2 text-emerald-800 dark:text-emerald-300 font-medium">
-              <Calendar className="w-4 h-4 flex-shrink-0" />
-              <span>Custom Date Range:</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="date"
-                value={customStartDate}
-                onChange={(e) => onCustomDateChange(e.target.value, customEndDate)}
-                className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-200 font-medium focus:ring-2 focus:ring-emerald-500"
-              />
-              <span className="text-slate-500 dark:text-slate-400">to</span>
-              <input
-                type="date"
-                value={customEndDate}
-                onChange={(e) => onCustomDateChange(customStartDate, e.target.value)}
-                className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-200 font-medium focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-          </div>
-        )}
       </div>
     </header>
   );

@@ -23,10 +23,16 @@ public class ExpenseController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ExpenseEntry>> getExpenses(
+    public ResponseEntity<?> getExpenses(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) Long categoryId) {
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        if (page != null) {
+            int pageSize = (size != null && size > 0) ? size : 20;
+            return ResponseEntity.ok(expenseService.getExpensesPaged(startDate, endDate, categoryId, page, pageSize));
+        }
         return ResponseEntity.ok(expenseService.getExpenses(startDate, endDate, categoryId));
     }
 

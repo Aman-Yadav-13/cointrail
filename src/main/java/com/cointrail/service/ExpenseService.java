@@ -1,14 +1,15 @@
 package com.cointrail.service;
 
-import com.cointrail.dto.CategorySummaryDto;
-import com.cointrail.dto.ExpenseRequest;
-import com.cointrail.dto.MonthlyTrendDto;
-import com.cointrail.dto.OverviewDto;
+import com.cointrail.dto.*;
 import com.cointrail.model.Category;
 import com.cointrail.model.ExpenseEntry;
 import com.cointrail.model.User;
 import com.cointrail.repository.ExpenseEntryRepository;
 import com.cointrail.security.SecurityUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.Month;
+import java.time.YearMonth;
 import java.time.format.TextStyle;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -52,6 +54,36 @@ public class ExpenseService {
         }
 
         return expenseEntryRepository.findByDateBetweenOrderByDateDescCreatedAtDesc(start, end);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<ExpenseEntry> getExpensesPaged(LocalDate startDate, LocalDate endDate, Long categoryId, int page, int size) {
+        User currentUser = securityUtils.getCurrentUser();
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "date").and(Sort.by(Sort.Direction.DESC, "createdAt")));
+
+        if (currentUser == null) {
+            return new PagedResponse<>(Collections.emptyList(), page, size, 0, 0, false);
+        }
+
+        Page<ExpenseEntry> resultPage;
+        if (startDate != null && endDate != null && categoryId != null) {
+            resultPage = expenseEntryRepository.findByUserAndDateBetweenAndCategoryId(currentUser, startDate, endDate, categoryId, pageable);
+        } else if (startDate != null && endDate != null) {
+            resultPage = expenseEntryRepository.findByUserAndDateBetween(currentUser, startDate, endDate, pageable);
+        } else if (categoryId != null) {
+            resultPage = expenseEntryRepository.findByUserAndCategoryId(currentUser, categoryId, pageable);
+        } else {
+            resultPage = expenseEntryRepository.findByUser(currentUser, pageable);
+        }
+
+        return new PagedResponse<>(
+                resultPage.getContent(),
+                page,
+                size,
+                resultPage.getTotalElements(),
+                resultPage.getTotalPages(),
+                resultPage.hasNext()
+        );
     }
 
     @Transactional(readOnly = true)
@@ -200,6 +232,171 @@ public class ExpenseService {
             breakdowns.sort((a, b) -> b.getTotalAmount().compareTo(a.getTotalAmount()));
 
             result.add(new MonthlyTrendDto(m, monthName, mTotal, mCount, breakdowns));
+        }
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public List<DailyTrendDto> getDailyTrend(int year, int month) {
+        YearMonth yearMonth = YearMonth.of(year, month);
+        int daysInMonth = yearMonth.lengthOfMonth();
+        LocalDate startOfMonth = LocalDate.of(year, month, 1);
+        LocalDate endOfMonth = LocalDate.of(year, month, daysInMonth);
+        User currentUser = securityUtils.getCurrentUser();
+
+        List<ExpenseEntry> entries;
+        if (currentUser != null) {
+            entries = expenseEntryRepository.findByUserAndDateBetween(currentUser, startOfMonth, endOfMonth);
+        } else {
+            entries = expenseEntryRepository.findByDateBetween(startOfMonth, endOfMonth);
+        }
+
+        Map<Integer, BigDecimal> dailyTotals = new HashMap<>();
+        Map<Integer, Long> dailyCounts = new HashMap<>();
+        Map<Integer, Map<Category, BigDecimal>> dailyCategoryTotals = new HashMap<>();
+        Map<Integer, Map<Category, Long>> dailyCategoryCounts = new HashMap<>();
+
+        for (int d = 1; d <= daysInMonth; d++) {
+            dailyTotals.put(d, BigDecimal.ZERO);
+            dailyCounts.put(d, 0L);
+            dailyCategoryTotals.put(d, new HashMap<>());
+            dailyCategoryCounts.put(d, new HashMap<>());
+        }
+
+        for (ExpenseEntry entry : entries) {
+            int d = entry.getDate().getDayOfMonth();
+            dailyTotals.put(d, dailyTotals.get(d).add(entry.getAmount()));
+            dailyCounts.put(d, dailyCounts.get(d) + 1);
+
+            Category cat = entry.getCategory();
+            if (cat != null) {
+                Map<Category, BigDecimal> catTotals = dailyCategoryTotals.get(d);
+                catTotals.put(cat, catTotals.getOrDefault(cat, BigDecimal.ZERO).add(entry.getAmount()));
+
+                Map<Category, Long> catCounts = dailyCategoryCounts.get(d);
+                catCounts.put(cat, catCounts.getOrDefault(cat, 0L) + 1L);
+            }
+        }
+
+        List<DailyTrendDto> result = new ArrayList<>();
+        for (int d = 1; d <= daysInMonth; d++) {
+            LocalDate date = LocalDate.of(year, month, d);
+            String dayName = date.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+            BigDecimal dTotal = dailyTotals.get(d);
+            long dCount = dailyCounts.get(d);
+
+            List<CategorySummaryDto> breakdowns = new ArrayList<>();
+            Map<Category, BigDecimal> catTotals = dailyCategoryTotals.get(d);
+            Map<Category, Long> catCounts = dailyCategoryCounts.get(d);
+
+            for (Map.Entry<Category, BigDecimal> catEntry : catTotals.entrySet()) {
+                Category cat = catEntry.getKey();
+                BigDecimal catAmt = catEntry.getValue();
+                Long count = catCounts.getOrDefault(cat, 0L);
+
+                CategorySummaryDto dto = new CategorySummaryDto(
+                        cat.getId(),
+                        cat.getName(),
+                        cat.getColor(),
+                        cat.getIcon(),
+                        catAmt,
+                        count
+                );
+                if (dTotal.compareTo(BigDecimal.ZERO) > 0) {
+                    double pct = catAmt.divide(dTotal, 4, RoundingMode.HALF_UP).doubleValue() * 100.0;
+                    dto.setPercentage(Math.round(pct * 10.0) / 10.0);
+                } else {
+                    dto.setPercentage(0.0);
+                }
+                breakdowns.add(dto);
+            }
+            breakdowns.sort((a, b) -> b.getTotalAmount().compareTo(a.getTotalAmount()));
+
+            result.add(new DailyTrendDto(d, date, dayName, dTotal, dCount, breakdowns));
+        }
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public List<YearlyTrendDto> getYearlyTrend() {
+        User currentUser = securityUtils.getCurrentUser();
+        List<ExpenseEntry> entries;
+        if (currentUser != null) {
+            entries = expenseEntryRepository.findByUserOrderByDateAsc(currentUser);
+        } else {
+            entries = expenseEntryRepository.findAll();
+        }
+
+        int currentYear = LocalDate.now().getYear();
+        int minYear = currentYear - 4; // default past 5 years: e.g. 2022..2026
+        for (ExpenseEntry entry : entries) {
+            if (entry.getDate().getYear() < minYear) {
+                minYear = entry.getDate().getYear();
+            }
+        }
+
+        Map<Integer, BigDecimal> yearlyTotals = new HashMap<>();
+        Map<Integer, Long> yearlyCounts = new HashMap<>();
+        Map<Integer, Map<Category, BigDecimal>> yearlyCategoryTotals = new HashMap<>();
+        Map<Integer, Map<Category, Long>> yearlyCategoryCounts = new HashMap<>();
+
+        for (int y = minYear; y <= currentYear; y++) {
+            yearlyTotals.put(y, BigDecimal.ZERO);
+            yearlyCounts.put(y, 0L);
+            yearlyCategoryTotals.put(y, new HashMap<>());
+            yearlyCategoryCounts.put(y, new HashMap<>());
+        }
+
+        for (ExpenseEntry entry : entries) {
+            int y = entry.getDate().getYear();
+            if (yearlyTotals.containsKey(y)) {
+                yearlyTotals.put(y, yearlyTotals.get(y).add(entry.getAmount()));
+                yearlyCounts.put(y, yearlyCounts.get(y) + 1);
+
+                Category cat = entry.getCategory();
+                if (cat != null) {
+                    Map<Category, BigDecimal> catTotals = yearlyCategoryTotals.get(y);
+                    catTotals.put(cat, catTotals.getOrDefault(cat, BigDecimal.ZERO).add(entry.getAmount()));
+
+                    Map<Category, Long> catCounts = yearlyCategoryCounts.get(y);
+                    catCounts.put(cat, catCounts.getOrDefault(cat, 0L) + 1L);
+                }
+            }
+        }
+
+        List<YearlyTrendDto> result = new ArrayList<>();
+        for (int y = minYear; y <= currentYear; y++) {
+            BigDecimal yTotal = yearlyTotals.get(y);
+            long yCount = yearlyCounts.get(y);
+
+            List<CategorySummaryDto> breakdowns = new ArrayList<>();
+            Map<Category, BigDecimal> catTotals = yearlyCategoryTotals.get(y);
+            Map<Category, Long> catCounts = yearlyCategoryCounts.get(y);
+
+            for (Map.Entry<Category, BigDecimal> catEntry : catTotals.entrySet()) {
+                Category cat = catEntry.getKey();
+                BigDecimal catAmt = catEntry.getValue();
+                Long count = catCounts.getOrDefault(cat, 0L);
+
+                CategorySummaryDto dto = new CategorySummaryDto(
+                        cat.getId(),
+                        cat.getName(),
+                        cat.getColor(),
+                        cat.getIcon(),
+                        catAmt,
+                        count
+                );
+                if (yTotal.compareTo(BigDecimal.ZERO) > 0) {
+                    double pct = catAmt.divide(yTotal, 4, RoundingMode.HALF_UP).doubleValue() * 100.0;
+                    dto.setPercentage(Math.round(pct * 10.0) / 10.0);
+                } else {
+                    dto.setPercentage(0.0);
+                }
+                breakdowns.add(dto);
+            }
+            breakdowns.sort((a, b) -> b.getTotalAmount().compareTo(a.getTotalAmount()));
+
+            result.add(new YearlyTrendDto(y, yTotal, yCount, breakdowns));
         }
         return result;
     }

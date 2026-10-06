@@ -41,6 +41,31 @@ export interface MonthlyTrend {
   categoryBreakdowns?: CategorySummary[];
 }
 
+export interface DailyTrend {
+  day: number;
+  date: string;
+  dayName: string;
+  totalAmount: number;
+  count: number;
+  categoryBreakdowns?: CategorySummary[];
+}
+
+export interface YearlyTrend {
+  year: number;
+  totalAmount: number;
+  count: number;
+  categoryBreakdowns?: CategorySummary[];
+}
+
+export interface PagedResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
 export interface OverviewStats {
   totalSpent: number;
   totalTransactions: number;

@@ -21,6 +21,16 @@ public interface ExpenseEntryRepository extends JpaRepository<ExpenseEntry, Long
 
     List<ExpenseEntry> findByUserAndDateBetween(User user, LocalDate startDate, LocalDate endDate);
 
+    org.springframework.data.domain.Page<ExpenseEntry> findByUser(User user, org.springframework.data.domain.Pageable pageable);
+
+    org.springframework.data.domain.Page<ExpenseEntry> findByUserAndCategoryId(User user, Long categoryId, org.springframework.data.domain.Pageable pageable);
+
+    org.springframework.data.domain.Page<ExpenseEntry> findByUserAndDateBetween(User user, LocalDate startDate, LocalDate endDate, org.springframework.data.domain.Pageable pageable);
+
+    org.springframework.data.domain.Page<ExpenseEntry> findByUserAndDateBetweenAndCategoryId(User user, LocalDate startDate, LocalDate endDate, Long categoryId, org.springframework.data.domain.Pageable pageable);
+
+    List<ExpenseEntry> findByUserOrderByDateAsc(User user);
+
     Optional<ExpenseEntry> findByIdAndUser(Long id, User user);
 
     boolean existsByCategoryId(Long categoryId);

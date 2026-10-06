@@ -5,6 +5,9 @@ import type {
   ExpenseRequest,
   CategorySummary,
   MonthlyTrend,
+  DailyTrend,
+  YearlyTrend,
+  PagedResponse,
   OverviewStats,
   User,
   AuthResponse,
@@ -104,6 +107,21 @@ export const api = {
     return res.data;
   },
 
+  async getExpensesPaged(
+    page: number = 0,
+    size: number = 20,
+    startDate?: string,
+    endDate?: string,
+    categoryId?: number
+  ): Promise<PagedResponse<ExpenseEntry>> {
+    const params: Record<string, string | number> = { page, size };
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+    if (categoryId) params.categoryId = categoryId;
+    const res = await client.get<PagedResponse<ExpenseEntry>>('/entries', { params });
+    return res.data;
+  },
+
   async createExpense(data: ExpenseRequest): Promise<ExpenseEntry> {
     const res = await client.post<ExpenseEntry>('/entries', data);
     return res.data;
@@ -127,8 +145,18 @@ export const api = {
     return res.data;
   },
 
+  async getDailyTrend(year: number, month: number): Promise<DailyTrend[]> {
+    const res = await client.get<DailyTrend[]>('/analytics/daily-trend', { params: { year, month } });
+    return res.data;
+  },
+
   async getMonthlyTrend(year: number): Promise<MonthlyTrend[]> {
     const res = await client.get<MonthlyTrend[]>('/analytics/monthly-trend', { params: { year } });
+    return res.data;
+  },
+
+  async getYearlyTrend(): Promise<YearlyTrend[]> {
+    const res = await client.get<YearlyTrend[]>('/analytics/yearly-trend');
     return res.data;
   },
 

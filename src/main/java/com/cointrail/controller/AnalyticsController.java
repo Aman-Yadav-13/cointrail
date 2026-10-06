@@ -35,6 +35,20 @@ public class AnalyticsController {
         return ResponseEntity.ok(expenseService.getMonthlyTrend(targetYear));
     }
 
+    @GetMapping("/daily-trend")
+    public ResponseEntity<List<com.cointrail.dto.DailyTrendDto>> getDailyTrend(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+        int targetYear = (year != null) ? year : LocalDate.now().getYear();
+        int targetMonth = (month != null) ? month : LocalDate.now().getMonthValue();
+        return ResponseEntity.ok(expenseService.getDailyTrend(targetYear, targetMonth));
+    }
+
+    @GetMapping("/yearly-trend")
+    public ResponseEntity<List<com.cointrail.dto.YearlyTrendDto>> getYearlyTrend() {
+        return ResponseEntity.ok(expenseService.getYearlyTrend());
+    }
+
     @GetMapping("/overview")
     public ResponseEntity<OverviewDto> getOverview(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -42,3 +56,4 @@ public class AnalyticsController {
         return ResponseEntity.ok(expenseService.getOverview(startDate, endDate));
     }
 }
+
