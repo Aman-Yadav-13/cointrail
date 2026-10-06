@@ -369,17 +369,6 @@ export function App() {
           </div>
         )}
 
-        {/* Dedicated Date Filter Bar for Mobile & Tablet (< lg screens) */}
-        <DateFilterBar
-          dateFilterPreset={dateFilterPreset}
-          onDateFilterChange={handleDateFilterChange}
-          startDate={startDate}
-          endDate={endDate}
-          periodLabel={periodLabel}
-          onCustomDateChange={handleCustomDateChange}
-          onStepMonth={handleStepMonth}
-        />
-
         {/* Dashboard Sections with Unified Loading Blur & Indicator */}
         <div className="relative space-y-3.5 sm:space-y-6">
           {loading && (
@@ -392,6 +381,17 @@ export function App() {
               </div>
             </div>
           )}
+
+          {/* Dedicated Date Filter Bar for Mobile & Tablet (< lg screens) */}
+          <DateFilterBar
+            dateFilterPreset={dateFilterPreset}
+            onDateFilterChange={handleDateFilterChange}
+            startDate={startDate}
+            endDate={endDate}
+            periodLabel={periodLabel}
+            onCustomDateChange={handleCustomDateChange}
+            onStepMonth={handleStepMonth}
+          />
 
           {/* Hero Spending Section (Seamless between Mobile, Tablet & Desktop) */}
           <HeroSpendSection
