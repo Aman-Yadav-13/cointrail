@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Edit2, Trash2, Check } from 'lucide-react';
+import { X, Plus, Edit2, Trash2, Check, Lock } from 'lucide-react';
 import type { Category } from '../types';
 import { ICON_MAP, renderCategoryIcon } from '../utils/formatters';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -49,6 +49,10 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   if (!isOpen) return null;
 
   const startEdit = (cat: Category) => {
+    if (cat.isDefault) {
+      setError('System default categories cannot be edited');
+      return;
+    }
     setEditingCategory(cat);
     setName(cat.name);
     setColor(cat.color);
@@ -226,21 +230,30 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
                   </div>
 
                   <div className="flex items-center space-x-0.5 flex-shrink-0 ml-2">
-                    <button
-                      onClick={() => startEdit(cat)}
-                      className="p-1 sm:p-1.5 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                      title="Edit Category"
-                    >
-                      <Edit2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                    </button>
-                    {!cat.isDefault && (
-                      <button
-                        onClick={() => setCategoryToDelete(cat)}
-                        className="p-1 sm:p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                        title="Delete Category"
+                    {cat.isDefault ? (
+                      <span
+                        className="p-1 sm:p-1.5 text-slate-300 dark:text-slate-600 rounded-lg flex items-center justify-center cursor-not-allowed"
+                        title="System default category (locked)"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                        <Lock className="w-3.5 h-3.5" />
+                      </span>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => startEdit(cat)}
+                          className="p-1 sm:p-1.5 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                          title="Edit Category"
+                        >
+                          <Edit2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setCategoryToDelete(cat)}
+                          className="p-1 sm:p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                          title="Delete Category"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
