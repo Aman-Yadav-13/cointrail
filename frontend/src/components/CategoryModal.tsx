@@ -85,6 +85,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [isDeletingCategory, setIsDeletingCategory] = useState<boolean>(false);
 
   // Search states for color and icon pickers
   const [colorSearch, setColorSearch] = useState('');
@@ -412,15 +413,24 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
       {/* Delete Category Confirmation Dialog */}
       <ConfirmDialog
         isOpen={!!categoryToDelete}
-        onClose={() => setCategoryToDelete(null)}
+        onClose={() => {
+          if (!isDeletingCategory) setCategoryToDelete(null);
+        }}
+        loading={isDeletingCategory}
         onConfirm={async () => {
           if (categoryToDelete) {
+            const catName = categoryToDelete.name;
             try {
+              setIsDeletingCategory(true);
               await onDeleteCategory(categoryToDelete.id);
               setCategoryToDelete(null);
+              setSuccessToast(`🗑️ Category "${catName}" has been deleted.`);
+              setTimeout(() => setSuccessToast(null), 3000);
             } catch (err: any) {
               setError(err?.response?.data?.message || 'Could not delete category');
               setCategoryToDelete(null);
+            } finally {
+              setIsDeletingCategory(false);
             }
           }
         }}

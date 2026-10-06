@@ -23,6 +23,7 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [entryToDelete, setEntryToDelete] = useState<ExpenseEntry | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   const filtered = expenses
     .filter((entry) => {
@@ -235,11 +236,19 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
       {/* Delete Transaction Confirmation Modal */}
       <ConfirmDialog
         isOpen={!!entryToDelete}
-        onClose={() => setEntryToDelete(null)}
-        onConfirm={() => {
+        onClose={() => {
+          if (!isDeleting) setEntryToDelete(null);
+        }}
+        loading={isDeleting}
+        onConfirm={async () => {
           if (entryToDelete) {
-            onDelete(entryToDelete.id);
-            setEntryToDelete(null);
+            try {
+              setIsDeleting(true);
+              await onDelete(entryToDelete.id);
+              setEntryToDelete(null);
+            } finally {
+              setIsDeleting(false);
+            }
           }
         }}
         title="Delete Transaction?"

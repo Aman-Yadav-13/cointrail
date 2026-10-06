@@ -22,7 +22,7 @@ import {
   type User,
 } from './types';
 import { formatDateToLocalISO } from './utils/formatters';
-import { RefreshCw, AlertCircle, Plus, Sparkles } from 'lucide-react';
+import { RefreshCw, AlertCircle, Plus, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export function App() {
   // Theme state (Night mode default)
@@ -102,6 +102,7 @@ export function App() {
 
   const [loading, setLoading] = useState<boolean>(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [toastNotification, setToastNotification] = useState<string | null>(null);
 
   // Modals
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -282,16 +283,21 @@ export function App() {
   const handleSaveExpense = async (request: ExpenseRequest) => {
     if (editingExpense) {
       await api.updateExpense(editingExpense.id, request);
+      setToastNotification('✨ Expense updated successfully!');
     } else {
       await api.createExpense(request);
+      setToastNotification('🎉 Expense recorded successfully!');
     }
     await loadData();
+    setTimeout(() => setToastNotification(null), 3000);
   };
 
   const handleDeleteExpense = async (id: number) => {
     try {
       await api.deleteExpense(id);
       await loadData();
+      setToastNotification('🗑️ Expense entry deleted.');
+      setTimeout(() => setToastNotification(null), 3000);
     } catch (err: any) {
       alert('Failed to delete expense: ' + (err?.response?.data?.message || err.message));
     }
@@ -348,7 +354,15 @@ export function App() {
       />
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6 space-y-3.5 sm:space-y-6 pb-24 sm:pb-8 min-w-0 overflow-x-hidden">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6 space-y-3.5 sm:space-y-6 pb-24 sm:pb-8 min-w-0 overflow-x-hidden relative">
+        {/* Floating Success Toast Notification */}
+        {toastNotification && (
+          <div className="fixed top-20 right-4 sm:right-8 z-50 p-3 sm:p-3.5 bg-slate-900/95 dark:bg-slate-800/95 text-white border border-slate-700/80 rounded-2xl shadow-2xl backdrop-blur-md flex items-center space-x-2.5 text-xs sm:text-sm font-semibold animate-in fade-in slide-in-from-top-3 duration-200">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span>{toastNotification}</span>
+          </div>
+        )}
+
         {/* Server error alert */}
         {serverError && (
           <div className="p-3.5 sm:p-4 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-xl sm:rounded-2xl flex items-center justify-between text-rose-800 dark:text-rose-300 text-xs sm:text-sm">
