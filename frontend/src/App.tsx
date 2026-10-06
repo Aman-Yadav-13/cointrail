@@ -18,7 +18,7 @@ import {
   type ExpenseRequest,
   type User,
 } from './types';
-import { RefreshCw, AlertCircle, Plus, CheckCircle2 } from 'lucide-react';
+import { RefreshCw, AlertCircle, Plus, CheckCircle2, Sparkles } from 'lucide-react';
 
 export function App() {
   // Theme state (Night mode default)
@@ -85,6 +85,7 @@ export function App() {
   // Data states
   const [categories, setCategories] = useState<Category[]>([]);
   const [overviewStats, setOverviewStats] = useState<OverviewStats | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const [serverError, setServerError] = useState<string | null>(null);
   const [toastNotification, setToastNotification] = useState<string | null>(null);
@@ -118,6 +119,7 @@ export function App() {
       setIsAuthModalOpen(true);
       setCategories([]);
       setOverviewStats(null);
+      setLoading(false);
     };
 
     window.addEventListener('cointrail_auth_expired', handleAuthExpired);
@@ -158,12 +160,27 @@ export function App() {
     }
   }, [currentUser]);
 
+  // Unified loader for initial dashboard sync
+  const loadInitialData = useCallback(async () => {
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      await Promise.all([loadCategories(), loadOverview()]);
+    } finally {
+      setTimeout(() => setLoading(false), 500);
+    }
+  }, [currentUser, loadCategories, loadOverview]);
+
   useEffect(() => {
     if (currentUser) {
-      loadCategories();
-      loadOverview();
+      loadInitialData();
+    } else {
+      setLoading(false);
     }
-  }, [currentUser, loadCategories, loadOverview, refreshKey]);
+  }, [currentUser, loadInitialData, refreshKey]);
 
   // Auth Handlers
   const handleAuthSuccess = (user: User) => {
@@ -280,6 +297,52 @@ export function App() {
               <span>Retry</span>
             </button>
           </div>
+        )}
+
+        {/* Unified Page-Wide Blur Overlay & Viewport-Centered Gyroscopic Loader Card */}
+        {loading && (
+          <>
+            {/* Full-bleed Backdrop Blur across whole page container */}
+            <div className="fixed inset-0 bg-white/40 dark:bg-slate-950/60 backdrop-blur-[4px] z-40 pointer-events-none transition-all duration-300" />
+
+            {/* Viewport Pinned Loader Card (Always centered in screen viewport on mobile & desktop) */}
+            <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none p-4">
+              <div className="bg-white/95 dark:bg-slate-900/95 border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-emerald-500/15 rounded-3xl p-5 sm:p-6 flex flex-col items-center max-w-[270px] w-full text-center transform animate-in fade-in zoom-in-95 duration-200 pointer-events-auto">
+                {/* Gyroscopic Quantum Orbit: Dual Rings with Pulsing Node and Accelerating Comet */}
+                <div className="relative w-16 h-16 mb-4 flex items-center justify-center">
+                  {/* Outer Gyroscopic Orbital Ring with 3D tilt */}
+                  <div className="absolute inset-0 rounded-full border-[1.5px] border-emerald-400/30 border-t-emerald-300 border-l-teal-200 animate-gyro-ring" />
+
+                  {/* Inner Fast High-Velocity Radar Trail */}
+                  <div className="absolute inset-2 rounded-full border-[2px] border-emerald-500/10 border-r-emerald-400 border-t-emerald-400 animate-radar-spin" />
+
+                  {/* Radial ambient glow backdrop */}
+                  <div className="absolute inset-2 rounded-full bg-emerald-500/20 blur-md animate-pulse" />
+
+                  {/* Core Glowing Emerald Coin Node */}
+                  <div className="relative w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/50 animate-core-breathe">
+                    <div className="w-6 h-6 rounded-full bg-slate-950/80 backdrop-blur-sm border border-emerald-300/60 flex items-center justify-center">
+                      <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-emerald-400 to-teal-200 shadow-sm shadow-emerald-300" />
+                    </div>
+                  </div>
+
+                  {/* Tiny comet satellite orbiting */}
+                  <div className="absolute inset-0 animate-radar-spin pointer-events-none">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_#34d399] -top-0.5 left-1/2 -translate-x-1/2" />
+                  </div>
+                </div>
+
+                {/* Creative Financial Copy */}
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center justify-center gap-1.5">
+                  <span>Balancing the Books</span>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500 animate-bounce" />
+                </h4>
+                <p className="text-[11px] text-slate-400 dark:text-slate-400 font-medium mt-1">
+                  Tracing every coin & trail...
+                </p>
+              </div>
+            </div>
+          </>
         )}
 
         <div className="space-y-4 sm:space-y-6 min-w-0">
