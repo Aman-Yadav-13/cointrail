@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Sun, Moon, LogIn, LogOut, Tag } from 'lucide-react';
+import { Plus, Sun, Moon, LogIn, LogOut } from 'lucide-react';
 import { CURRENCIES, type Currency, type User } from '../types';
 
 interface NavbarProps {
@@ -82,15 +82,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               </select>
             </div>
 
-            {/* Explicit Categories Pill Button */}
+            {/* Explicit Add Category Pill Button */}
             {currentUser && (
               <button
                 onClick={onOpenCategories}
                 className="text-xs font-semibold px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 border border-emerald-300/80 dark:border-emerald-800 flex items-center space-x-1 sm:space-x-1.5 transition-all active:scale-95 shadow-xs cursor-pointer"
-                title="Manage Categories"
+                title="Add Category"
               >
-                <Tag className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-                <span className="font-bold text-[11px] sm:text-xs">Categories</span>
+                <Plus className="w-3.5 h-3.5 stroke-[2.5] text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                <span className="font-bold text-[11px] sm:text-xs hidden xs:inline">Add </span>
+                <span className="font-bold text-[11px] sm:text-xs">Category</span>
               </button>
             )}
 
