@@ -1,6 +1,7 @@
 package com.cointrail.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 
@@ -23,6 +24,7 @@ public class Category {
     private String icon = "Tag";
 
     @Column(name = "is_default")
+    @JsonProperty("isDefault")
     private boolean isDefault = false;
 
     @ManyToOne(fetch = FetchType.LAZY)

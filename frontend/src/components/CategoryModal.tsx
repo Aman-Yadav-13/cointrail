@@ -49,7 +49,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   if (!isOpen) return null;
 
   const startEdit = (cat: Category) => {
-    if (cat.isDefault) {
+    if (cat.isDefault || cat.default) {
       setError('System default categories cannot be edited');
       return;
     }
@@ -222,7 +222,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
                         {cat.name}
                       </span>
                     </div>
-                    {cat.isDefault && (
+                    {(cat.isDefault || cat.default) && (
                       <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-medium flex-shrink-0">
                         Default
                       </span>
@@ -230,7 +230,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
                   </div>
 
                   <div className="flex items-center space-x-0.5 flex-shrink-0 ml-2">
-                    {cat.isDefault ? (
+                    {(cat.isDefault || cat.default) ? (
                       <span
                         className="p-1 sm:p-1.5 text-slate-300 dark:text-slate-600 rounded-lg flex items-center justify-center cursor-not-allowed"
                         title="System default category (locked)"

@@ -3,7 +3,8 @@ export interface Category {
   name: string;
   color: string;
   icon: string;
-  isDefault: boolean;
+  isDefault?: boolean;
+  default?: boolean;
 }
 
 export interface ExpenseEntry {
