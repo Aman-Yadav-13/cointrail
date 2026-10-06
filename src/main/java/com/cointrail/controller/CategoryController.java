@@ -1,6 +1,7 @@
 package com.cointrail.controller;
 
 import com.cointrail.dto.CategoryDto;
+import com.cointrail.dto.PagedResponse;
 import com.cointrail.model.Category;
 import com.cointrail.service.CategoryService;
 import jakarta.validation.Valid;
@@ -23,6 +24,14 @@ public class CategoryController {
     @GetMapping
     public ResponseEntity<List<Category>> getAllCategories() {
         return ResponseEntity.ok(categoryService.getAllCategories());
+    }
+
+    @GetMapping("/paged")
+    public ResponseEntity<PagedResponse<Category>> getCategoriesPaged(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size) {
+        return ResponseEntity.ok(categoryService.getCategoriesPaged(search, page, size));
     }
 
     @GetMapping("/{id}")

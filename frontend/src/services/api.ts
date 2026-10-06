@@ -83,6 +83,13 @@ export const api = {
     return res.data;
   },
 
+  async getCategoriesPaged(page: number = 0, size: number = 15, search?: string): Promise<PagedResponse<Category>> {
+    const params: Record<string, string | number> = { page, size };
+    if (search && search.trim()) params.search = search.trim();
+    const res = await client.get<PagedResponse<Category>>('/categories/paged', { params });
+    return res.data;
+  },
+
   async createCategory(data: { name: string; color: string; icon: string }): Promise<Category> {
     const res = await client.post<Category>('/categories', data);
     return res.data;

@@ -1,6 +1,7 @@
 package com.cointrail.service;
 
 import com.cointrail.dto.CategoryDto;
+import com.cointrail.dto.PagedResponse;
 import com.cointrail.model.Category;
 import com.cointrail.model.User;
 import com.cointrail.repository.CategoryRepository;
@@ -10,6 +11,9 @@ import com.cointrail.security.SecurityUtils;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -114,6 +118,27 @@ public class CategoryService {
             return categoryRepository.findAvailableForUser(user);
         }
         return categoryRepository.findAllByOrderByNameAsc();
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<Category> getCategoriesPaged(String search, int page, int size) {
+        User user = securityUtils.getCurrentUser();
+        Pageable pageable = PageRequest.of(page, size);
+        String cleanSearch = (search != null && !search.isBlank()) ? search.trim() : null;
+        Page<Category> categoryPage;
+        if (user != null) {
+            categoryPage = categoryRepository.findAvailableForUserPaged(user, cleanSearch, pageable);
+        } else {
+            categoryPage = categoryRepository.findAllPaged(cleanSearch, pageable);
+        }
+        return new PagedResponse<>(
+                categoryPage.getContent(),
+                page,
+                size,
+                categoryPage.getTotalElements(),
+                categoryPage.getTotalPages(),
+                categoryPage.hasNext()
+        );
     }
 
     @Transactional(readOnly = true)

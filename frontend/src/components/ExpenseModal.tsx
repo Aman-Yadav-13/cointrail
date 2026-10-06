@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus } from 'lucide-react';
 import type { Category, Currency, ExpenseEntry, ExpenseRequest } from '../types';
 import { formatDateToLocalISO } from '../utils/formatters';
+import { LazyCategorySelect } from './LazyCategorySelect';
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -148,19 +149,11 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
                 </button>
               )}
             </div>
-            <div className="relative">
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(Number(e.target.value))}
-                className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all cursor-pointer"
-              >
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id} className="dark:bg-slate-800">
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <LazyCategorySelect
+              value={categoryId}
+              onChange={(id) => setCategoryId(id)}
+              disabled={loading}
+            />
           </div>
 
           {/* Date Picker */}
