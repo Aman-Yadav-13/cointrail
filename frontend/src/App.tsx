@@ -363,7 +363,6 @@ export function App() {
             <CategoryPieChart
               currency={currency}
               refreshKey={refreshKey}
-              onOpenCategories={() => setIsCategoryModalOpen(true)}
             />
 
             {/* Spending Trends Bar Chart with 3 Views: Daily, Monthly, and Yearly */}
