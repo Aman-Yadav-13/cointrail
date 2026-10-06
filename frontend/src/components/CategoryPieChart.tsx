@@ -8,7 +8,6 @@ import {
 } from 'recharts';
 import {
   PieChart as PieIcon,
-  Plus,
   RotateCcw,
   Info,
   ChevronLeft,
@@ -22,7 +21,6 @@ import { formatCurrency, renderCategoryIcon } from '../utils/formatters';
 interface CategoryPieChartProps {
   currency: Currency;
   refreshKey?: number;
-  onOpenCategories?: () => void;
 }
 
 const MONTH_NAMES = [
@@ -51,7 +49,6 @@ const renderActiveShape = (props: any) => {
 export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
   currency,
   refreshKey = 0,
-  onOpenCategories,
 }) => {
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
@@ -182,18 +179,6 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
               <ChevronRight className="w-3 h-3" />
             </button>
           </div>
-
-          {onOpenCategories && (
-            <button
-              onClick={onOpenCategories}
-              className="text-[11px] sm:text-xs font-bold px-2 sm:px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 border border-emerald-300/80 dark:border-emerald-800 flex items-center space-x-1 transition-all active:scale-95 shadow-xs cursor-pointer"
-              title="Add Category"
-            >
-              <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[2.5] text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-              <span className="font-bold text-[11px] sm:text-xs hidden xs:inline sm:inline">Add </span>
-              <span className="font-bold text-[11px] sm:text-xs">Category</span>
-            </button>
-          )}
 
           <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-500 dark:text-slate-400 flex items-center justify-center flex-shrink-0">
             <PieIcon className="w-3.5 h-3.5" />
