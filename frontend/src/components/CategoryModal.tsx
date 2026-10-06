@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, Plus, Edit2, Trash2, Lock, Search, Loader2, Sparkles, CheckCircle2, Palette } from 'lucide-react';
+import { X, Plus, Edit2, Trash2, Lock, Search, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
 import type { Category } from '../types';
 import { ICON_MAP, renderCategoryIcon } from '../utils/formatters';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -86,9 +86,8 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
         });
         setSuccessToast(`✨ "${categoryTitle}" updated successfully!`);
       } else {
-        // System automatically selects a unique color from 1,000+ color arsenal
         await onCreateCategory({ name: categoryTitle, color: '', icon });
-        setSuccessToast(`🎉 "${categoryTitle}" created with a unique system color!`);
+        setSuccessToast(`🎉 "${categoryTitle}" created successfully!`);
       }
 
       setTimeout(() => {
@@ -110,7 +109,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
           <div>
             <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Manage Categories</h2>
             <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
-              Configure names and icons • Unique colors assigned automatically
+              Configure names and icons for your custom categories
             </p>
           </div>
           <button
@@ -174,27 +173,6 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none disabled:opacity-50"
               />
-            </div>
-
-            {/* System Color Assignment Badge */}
-            <div className="flex items-center space-x-2.5 p-2.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-800/60">
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm flex-shrink-0"
-                style={{ backgroundColor: editingCategory?.color || '#10B981' }}
-              >
-                {renderCategoryIcon(icon, { className: 'w-4 h-4' })}
-              </div>
-              <div className="min-w-0 flex-1">
-                <span className="font-bold text-emerald-900 dark:text-emerald-200 text-xs flex items-center space-x-1">
-                  <Palette className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>{editingCategory ? 'Assigned System Color' : 'Auto-Assigned Unique Color'}</span>
-                </span>
-                <p className="text-[10px] text-emerald-700 dark:text-emerald-400 leading-tight mt-0.5 truncate">
-                  {editingCategory
-                    ? `Color code: ${editingCategory.color} (system managed)`
-                    : 'System selects a guaranteed unique color from its 1,000+ color arsenal.'}
-                </p>
-              </div>
             </div>
 
             {/* Icon Picker with Dedicated Search */}
