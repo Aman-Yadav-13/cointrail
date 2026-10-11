@@ -3,6 +3,8 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  LineChart as RechartsLineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -16,7 +18,7 @@ import {
   X,
   Calendar,
   BarChart3,
-  LineChart,
+  LineChart as LucideLineChart,
   Loader2,
 } from 'lucide-react';
 import type { DailyTrend, MonthlyTrend, YearlyTrend, Currency, CategorySummary } from '../types';
@@ -29,6 +31,7 @@ interface MonthlyBarChartProps {
 }
 
 type ChartGranularity = 'daily' | 'monthly' | 'yearly';
+type ChartViewType = 'bar' | 'line';
 
 const MONTH_NAMES = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -44,6 +47,9 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
 
   // Active view tab: 'daily' | 'monthly' | 'yearly'
   const [activeTab, setActiveTab] = useState<ChartGranularity>('daily');
+
+  // Active chart display type: 'bar' | 'line'
+  const [chartViewType, setChartViewType] = useState<ChartViewType>('bar');
 
   // Independent Filters
   // Daily view filters: Month & Year (defaults to current month & current year)
@@ -220,45 +226,74 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
             )}
           </div>
           <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">
-            {formatCurrency(totalSpentInView, currency.symbol)} total • Category-segmented
+            {formatCurrency(totalSpentInView, currency.symbol)} total • {chartViewType === 'line' ? 'Multi-category trajectory' : 'Category-segmented'}
           </p>
         </div>
 
-        {/* View Granularity Switcher Tabs: Daily | Monthly | Yearly */}
-        <div className="flex items-center bg-slate-100 dark:bg-slate-700/70 p-1 rounded-xl text-xs font-semibold self-start sm:self-auto">
-          <button
-            onClick={() => setActiveTab('daily')}
-            className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 cursor-pointer ${
-              activeTab === 'daily'
-                ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Calendar className="w-3 h-3" />
-            <span>Daily</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('monthly')}
-            className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 cursor-pointer ${
-              activeTab === 'monthly'
-                ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <BarChart3 className="w-3 h-3" />
-            <span>Monthly</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('yearly')}
-            className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 cursor-pointer ${
-              activeTab === 'yearly'
-                ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <LineChart className="w-3 h-3" />
-            <span>Yearly</span>
-          </button>
+        {/* View Controls: Chart Display Toggle (Bar | Line) & Granularity Tabs (Daily | Monthly | Yearly) */}
+        <div className="flex items-center space-x-2 flex-wrap gap-y-1.5 self-start sm:self-auto">
+          {/* Chart Display Mode Toggle */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-xl text-xs font-semibold">
+            <button
+              onClick={() => setChartViewType('bar')}
+              className={`px-2 py-1 rounded-lg transition-all flex items-center space-x-1 cursor-pointer ${
+                chartViewType === 'bar'
+                  ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+              }`}
+              title="Bar Chart View"
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-bold">Bar</span>
+            </button>
+            <button
+              onClick={() => setChartViewType('line')}
+              className={`px-2 py-1 rounded-lg transition-all flex items-center space-x-1 cursor-pointer ${
+                chartViewType === 'line'
+                  ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+              }`}
+              title="Multi-Category Line Chart View"
+            >
+              <LucideLineChart className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-bold">Line</span>
+            </button>
+          </div>
+
+          {/* Granularity Tabs: Daily | Monthly | Yearly */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-xl text-xs font-semibold">
+            <button
+              onClick={() => setActiveTab('daily')}
+              className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 cursor-pointer ${
+                activeTab === 'daily'
+                  ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Calendar className="w-3 h-3" />
+              <span>Daily</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('monthly')}
+              className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 cursor-pointer ${
+                activeTab === 'monthly'
+                  ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <span>Monthly</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('yearly')}
+              className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 cursor-pointer ${
+                activeTab === 'yearly'
+                  ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <span>Yearly</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -362,113 +397,247 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
       ) : (
         <div className="w-full h-52 sm:h-56 min-h-[200px] pt-2 min-w-0">
           <ResponsiveContainer width="100%" height="100%" minHeight={180}>
-            <BarChart
-              data={transformedChartData}
-              margin={{ top: 8, right: 6, left: -14, bottom: 0 }}
-              onClick={(e: any) => {
-                const evt = e as any;
-                if (evt && evt.activePayload && evt.activePayload.length > 0) {
-                  handleBarClick(evt.activePayload[0].payload);
-                }
-              }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#94a3b8"
-                strokeOpacity={0.2}
-              />
-              <XAxis
-                dataKey="displayLabel"
-                axisLine={false}
-                tickLine={false}
-                interval={activeTab === 'daily' && isMobile ? 2 : 0}
-                tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 600 }}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                width={36}
-                domain={[0, (dataMax: number) => (dataMax > 0 ? Math.ceil(dataMax * 1.15) : 100)]}
-                tick={{ fill: '#94a3b8', fontSize: 9 }}
-                tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
-              />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (!active || !payload || !payload.length) return null;
-                  const row = payload[0].payload;
-                  const breakdowns: CategorySummary[] = row.categoryBreakdowns || [];
-                  const itemTotal: number = row.totalAmount || 0;
-
-                  return (
-                    <div className="bg-slate-900/95 text-white backdrop-blur-md p-3 rounded-xl border border-slate-700/80 shadow-2xl text-xs z-50 pointer-events-none min-w-[190px]">
-                      <div className="flex items-center justify-between border-b border-slate-700/80 pb-1.5 mb-2">
-                        <span className="font-bold text-slate-100">{row.fullLabel}</span>
-                        <span className="font-extrabold text-emerald-400">
-                          {formatCurrency(itemTotal, currency.symbol)}
-                        </span>
-                      </div>
-
-                      {breakdowns.length === 0 ? (
-                        <p className="text-[11px] text-slate-400 italic">No expenses recorded</p>
-                      ) : (
-                        <div className="space-y-1.5">
-                          <div className="text-[10px] text-slate-400 flex items-center justify-between pb-0.5">
-                            <span>Category Breakdown</span>
-                            <span>{row.count} {row.count === 1 ? 'txn' : 'txns'}</span>
-                          </div>
-                          {breakdowns.map((cat, i) => (
-                            <div key={i} className="flex items-center justify-between text-[11px]">
-                              <div className="flex items-center space-x-1.5 truncate max-w-[110px]">
-                                <span
-                                  className="w-2 h-2 rounded-full flex-shrink-0"
-                                  style={{ backgroundColor: cat.color }}
-                                />
-                                <span className="truncate text-slate-200">{cat.categoryName}</span>
-                              </div>
-                              <div className="text-right flex items-center space-x-1.5 flex-shrink-0">
-                                <span className="font-semibold text-white">
-                                  {formatCurrency(cat.totalAmount, currency.symbol)}
-                                </span>
-                                <span className="text-[10px] text-slate-400">
-                                  ({cat.percentage}%)
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <p className="text-[9px] text-slate-400 mt-2 pt-1 border-t border-slate-800 text-center">
-                        Tap bar to inspect breakdown
-                      </p>
-                    </div>
-                  );
+            {chartViewType === 'bar' ? (
+              <BarChart
+                data={transformedChartData}
+                margin={{ top: 8, right: 6, left: -14, bottom: 0 }}
+                onClick={(e: any) => {
+                  const evt = e as any;
+                  if (evt && evt.activePayload && evt.activePayload.length > 0) {
+                    handleBarClick(evt.activePayload[0].payload);
+                  }
                 }}
-              />
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#94a3b8"
+                  strokeOpacity={0.2}
+                />
+                <XAxis
+                  dataKey="displayLabel"
+                  axisLine={false}
+                  tickLine={false}
+                  interval={activeTab === 'daily' && isMobile ? 2 : 0}
+                  tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 600 }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  width={36}
+                  domain={[0, (dataMax: number) => (dataMax > 0 ? Math.ceil(dataMax * 1.15) : 100)]}
+                  tick={{ fill: '#94a3b8', fontSize: 9 }}
+                  tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
+                />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (!active || !payload || !payload.length) return null;
+                    const row = payload[0].payload;
+                    const breakdowns: CategorySummary[] = row.categoryBreakdowns || [];
+                    const itemTotal: number = row.totalAmount || 0;
 
-              {allCategories.length > 0 ? (
-                allCategories.map((cat, idx) => (
+                    return (
+                      <div className="bg-slate-900/95 text-white backdrop-blur-md p-3 rounded-xl border border-slate-700/80 shadow-2xl text-xs z-50 pointer-events-none min-w-[190px]">
+                        <div className="flex items-center justify-between border-b border-slate-700/80 pb-1.5 mb-2">
+                          <span className="font-bold text-slate-100">{row.fullLabel}</span>
+                          <span className="font-extrabold text-emerald-400">
+                            {formatCurrency(itemTotal, currency.symbol)}
+                          </span>
+                        </div>
+
+                        {breakdowns.length === 0 ? (
+                          <p className="text-[11px] text-slate-400 italic">No expenses recorded</p>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <div className="text-[10px] text-slate-400 flex items-center justify-between pb-0.5">
+                              <span>Category Breakdown</span>
+                              <span>{row.count} {row.count === 1 ? 'txn' : 'txns'}</span>
+                            </div>
+                            {breakdowns.map((cat, i) => (
+                              <div key={i} className="flex items-center justify-between text-[11px]">
+                                <div className="flex items-center space-x-1.5 truncate max-w-[110px]">
+                                  <span
+                                    className="w-2 h-2 rounded-full flex-shrink-0"
+                                    style={{ backgroundColor: cat.color }}
+                                  />
+                                  <span className="truncate text-slate-200">{cat.categoryName}</span>
+                                </div>
+                                <div className="text-right flex items-center space-x-1.5 flex-shrink-0">
+                                  <span className="font-semibold text-white">
+                                    {formatCurrency(cat.totalAmount, currency.symbol)}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400">
+                                    ({cat.percentage}%)
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-[9px] text-slate-400 mt-2 pt-1 border-t border-slate-800 text-center">
+                          Tap bar to inspect breakdown
+                        </p>
+                      </div>
+                    );
+                  }}
+                />
+
+                {allCategories.length > 0 ? (
+                  allCategories.map((cat, idx) => (
+                    <Bar
+                      key={cat.name}
+                      dataKey={cat.name}
+                      stackId="trendCategoryStack"
+                      fill={cat.color}
+                      name={cat.name}
+                      maxBarSize={activeTab === 'daily' ? 14 : 28}
+                      cursor="pointer"
+                      radius={idx === allCategories.length - 1 ? [2, 2, 0, 0] : [0, 0, 0, 0]}
+                    />
+                  ))
+                ) : (
                   <Bar
-                    key={cat.name}
-                    dataKey={cat.name}
-                    stackId="trendCategoryStack"
-                    fill={cat.color}
-                    name={cat.name}
+                    dataKey="totalAmount"
+                    fill="#10b981"
+                    radius={[3, 3, 0, 0]}
                     maxBarSize={activeTab === 'daily' ? 14 : 28}
                     cursor="pointer"
-                    radius={idx === allCategories.length - 1 ? [2, 2, 0, 0] : [0, 0, 0, 0]}
                   />
-                ))
-              ) : (
-                <Bar
-                  dataKey="totalAmount"
-                  fill="#10b981"
-                  radius={[3, 3, 0, 0]}
-                  maxBarSize={activeTab === 'daily' ? 14 : 28}
-                  cursor="pointer"
+                )}
+              </BarChart>
+            ) : (
+              <RechartsLineChart
+                data={transformedChartData}
+                margin={{ top: 8, right: 10, left: -14, bottom: 0 }}
+                onClick={(e: any) => {
+                  const evt = e as any;
+                  if (evt && evt.activePayload && evt.activePayload.length > 0) {
+                    handleBarClick(evt.activePayload[0].payload);
+                  }
+                }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#94a3b8"
+                  strokeOpacity={0.2}
                 />
-              )}
-            </BarChart>
+                <XAxis
+                  dataKey="displayLabel"
+                  axisLine={false}
+                  tickLine={false}
+                  interval={activeTab === 'daily' && isMobile ? 2 : 0}
+                  tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 600 }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  width={36}
+                  domain={[0, (dataMax: number) => (dataMax > 0 ? Math.ceil(dataMax * 1.15) : 100)]}
+                  tick={{ fill: '#94a3b8', fontSize: 9 }}
+                  tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
+                />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (!active || !payload || !payload.length) return null;
+                    const row = payload[0].payload;
+                    const breakdowns: CategorySummary[] = row.categoryBreakdowns || [];
+                    const itemTotal: number = row.totalAmount || 0;
+
+                    return (
+                      <div className="bg-slate-900/95 text-white backdrop-blur-md p-3 rounded-xl border border-slate-700/80 shadow-2xl text-xs z-50 pointer-events-none min-w-[190px]">
+                        <div className="flex items-center justify-between border-b border-slate-700/80 pb-1.5 mb-2">
+                          <span className="font-bold text-slate-100">{row.fullLabel}</span>
+                          <span className="font-extrabold text-emerald-400">
+                            {formatCurrency(itemTotal, currency.symbol)}
+                          </span>
+                        </div>
+
+                        {breakdowns.length === 0 ? (
+                          <p className="text-[11px] text-slate-400 italic">No expenses recorded</p>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <div className="text-[10px] text-slate-400 flex items-center justify-between pb-0.5">
+                              <span>Category Breakdown</span>
+                              <span>{row.count} {row.count === 1 ? 'txn' : 'txns'}</span>
+                            </div>
+                            {breakdowns.map((cat, i) => (
+                              <div key={i} className="flex items-center justify-between text-[11px]">
+                                <div className="flex items-center space-x-1.5 truncate max-w-[110px]">
+                                  <span
+                                    className="w-2 h-2 rounded-full flex-shrink-0"
+                                    style={{ backgroundColor: cat.color }}
+                                  />
+                                  <span className="truncate text-slate-200">{cat.categoryName}</span>
+                                </div>
+                                <div className="text-right flex items-center space-x-1.5 flex-shrink-0">
+                                  <span className="font-semibold text-white">
+                                    {formatCurrency(cat.totalAmount, currency.symbol)}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400">
+                                    ({cat.percentage}%)
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-[9px] text-slate-400 mt-2 pt-1 border-t border-slate-800 text-center">
+                          Tap point to inspect breakdown
+                        </p>
+                      </div>
+                    );
+                  }}
+                />
+
+                {allCategories.length > 0 ? (
+                  allCategories.map((cat) => (
+                    <Line
+                      key={cat.name}
+                      type="monotone"
+                      dataKey={cat.name}
+                      name={cat.name}
+                      stroke={cat.color}
+                      strokeWidth={2.5}
+                      dot={{
+                        r: 3.5,
+                        fill: cat.color,
+                        stroke: '#ffffff',
+                        strokeWidth: 1.5,
+                      }}
+                      activeDot={{
+                        r: 6,
+                        fill: cat.color,
+                        stroke: '#ffffff',
+                        strokeWidth: 2,
+                        cursor: 'pointer',
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Line
+                    type="monotone"
+                    dataKey="totalAmount"
+                    name="Total"
+                    stroke="#10b981"
+                    strokeWidth={2.5}
+                    dot={{
+                      r: 3.5,
+                      fill: '#10b981',
+                      stroke: '#ffffff',
+                      strokeWidth: 1.5,
+                    }}
+                    activeDot={{
+                      r: 6,
+                      fill: '#10b981',
+                      stroke: '#ffffff',
+                      strokeWidth: 2,
+                      cursor: 'pointer',
+                    }}
+                  />
+                )}
+              </RechartsLineChart>
+            )}
           </ResponsiveContainer>
         </div>
       )}
@@ -549,7 +718,7 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
         </span>
         <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center space-x-1">
           <Info className="w-3 h-3" />
-          <span>Tap/hover bar to inspect category breakdown</span>
+          <span>Tap/hover {chartViewType === 'line' ? 'point' : 'bar'} to inspect category breakdown</span>
         </span>
       </div>
     </div>
