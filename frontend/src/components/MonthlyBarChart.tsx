@@ -9,6 +9,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceArea,
 } from 'recharts';
 import {
   ChevronLeft,
@@ -20,6 +21,9 @@ import {
   BarChart3,
   LineChart as LucideLineChart,
   Loader2,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
 } from 'lucide-react';
 import type { DailyTrend, MonthlyTrend, YearlyTrend, Currency, CategorySummary } from '../types';
 import { api } from '../services/api';
@@ -189,7 +193,144 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
     });
   }, [activeItems, allCategories]);
 
+  // Zoom state: null when showing full dataset, or { startIndex, endIndex }
+  const [zoomRange, setZoomRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
+
+  // Drag selection state for interactive drag-to-zoom
+  const [refAreaLeft, setRefAreaLeft] = useState<string | null>(null);
+  const [refAreaRight, setRefAreaRight] = useState<string | null>(null);
+
+  // Reset zoom on active view or filter change
+  useEffect(() => {
+    setZoomRange(null);
+    setRefAreaLeft(null);
+    setRefAreaRight(null);
+  }, [activeTab, dailyMonth, dailyYear, monthlyYear]);
+
+  const isZoomed = zoomRange !== null;
+
+  // Sliced data based on active zoom range
+  const visibleChartData = useMemo(() => {
+    if (!zoomRange) return transformedChartData;
+    const start = Math.max(0, zoomRange.startIndex);
+    const end = Math.min(transformedChartData.length - 1, zoomRange.endIndex);
+    if (start >= end) return transformedChartData;
+    return transformedChartData.slice(start, end + 1);
+  }, [transformedChartData, zoomRange]);
+
+  // Dynamically recalculated Y-Axis upper bound based on visible data
+  const yAxisMax = useMemo(() => {
+    if (visibleChartData.length === 0) return 100;
+    let maxVal = 0;
+    if (chartViewType === 'line' && allCategories.length > 0) {
+      visibleChartData.forEach((row) => {
+        allCategories.forEach((cat) => {
+          const val = Number(row[cat.name]) || 0;
+          if (val > maxVal) maxVal = val;
+        });
+      });
+    } else {
+      maxVal = Math.max(...visibleChartData.map((r) => r.totalAmount || 0), 0);
+    }
+    return maxVal > 0 ? Math.ceil(maxVal * 1.15) : 100;
+  }, [visibleChartData, chartViewType, allCategories]);
+
+  // Zoom controls
+  const handleZoomIn = () => {
+    const total = transformedChartData.length;
+    if (total <= 3) return;
+    const currentStart = zoomRange ? zoomRange.startIndex : 0;
+    const currentEnd = zoomRange ? zoomRange.endIndex : total - 1;
+    const currentSpan = currentEnd - currentStart;
+    if (currentSpan <= 2) return;
+
+    const quarter = Math.max(1, Math.round(currentSpan * 0.25));
+    const newStart = Math.min(currentStart + quarter, currentEnd - 2);
+    const newEnd = Math.max(currentEnd - quarter, newStart + 2);
+    setZoomRange({ startIndex: newStart, endIndex: newEnd });
+  };
+
+  const handleZoomOut = () => {
+    if (!zoomRange) return;
+    const total = transformedChartData.length;
+    const currentSpan = zoomRange.endIndex - zoomRange.startIndex;
+    const quarter = Math.max(1, Math.round(currentSpan * 0.35));
+    const newStart = Math.max(0, zoomRange.startIndex - quarter);
+    const newEnd = Math.min(total - 1, zoomRange.endIndex + quarter);
+
+    if (newStart === 0 && newEnd >= total - 1) {
+      setZoomRange(null);
+    } else {
+      setZoomRange({ startIndex: newStart, endIndex: newEnd });
+    }
+  };
+
+  const handlePan = (direction: 'left' | 'right') => {
+    if (!zoomRange) return;
+    const total = transformedChartData.length;
+    const span = zoomRange.endIndex - zoomRange.startIndex;
+    const step = Math.max(1, Math.round(span * 0.3));
+
+    if (direction === 'left') {
+      const newStart = Math.max(0, zoomRange.startIndex - step);
+      const newEnd = Math.min(total - 1, newStart + span);
+      setZoomRange({ startIndex: newStart, endIndex: newEnd });
+    } else {
+      const newEnd = Math.min(total - 1, zoomRange.endIndex + step);
+      const newStart = Math.max(0, newEnd - span);
+      setZoomRange({ startIndex: newStart, endIndex: newEnd });
+    }
+  };
+
+  const handleResetZoom = () => {
+    setZoomRange(null);
+    setRefAreaLeft(null);
+    setRefAreaRight(null);
+  };
+
+  const wasDraggingZoom = React.useRef(false);
+
+  const handleMouseDown = (e: any) => {
+    if (e && e.activeLabel) {
+      setRefAreaLeft(e.activeLabel);
+      setRefAreaRight(null);
+    }
+  };
+
+  const handleMouseMove = (e: any) => {
+    if (refAreaLeft && e && e.activeLabel) {
+      setRefAreaRight(e.activeLabel);
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (!refAreaLeft || !refAreaRight || refAreaLeft === refAreaRight) {
+      setRefAreaLeft(null);
+      setRefAreaRight(null);
+      return;
+    }
+
+    const idx1 = transformedChartData.findIndex((d) => d.displayLabel === refAreaLeft);
+    const idx2 = transformedChartData.findIndex((d) => d.displayLabel === refAreaRight);
+
+    if (idx1 !== -1 && idx2 !== -1) {
+      const start = Math.min(idx1, idx2);
+      const end = Math.max(idx1, idx2);
+      if (end - start >= 1) {
+        wasDraggingZoom.current = true;
+        setZoomRange({ startIndex: start, endIndex: end });
+        setTimeout(() => {
+          wasDraggingZoom.current = false;
+        }, 150);
+      }
+    }
+
+    setRefAreaLeft(null);
+    setRefAreaRight(null);
+  };
+
   const handleBarClick = (entry: any) => {
+    if (wasDraggingZoom.current) return;
     if (!entry) return;
     if (pinnedItem && pinnedItem.label === entry.fullLabel) {
       setPinnedItem(null);
@@ -297,77 +438,133 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
         </div>
       </div>
 
-      {/* Dynamic Sub-header: Filters for the active view */}
+      {/* Dynamic Sub-header: Filters and Zoom Controls */}
       <div className="flex items-center justify-between py-2 border-b border-slate-100/70 dark:border-slate-700/40 gap-2 flex-wrap text-xs">
-        {/* Daily Filters: Month & Year */}
-        {activeTab === 'daily' && (
-          <div className="flex items-center space-x-2">
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Month & Year:</span>
-            <select
-              value={dailyMonth}
-              onChange={(e) => setDailyMonth(Number(e.target.value))}
-              className="bg-slate-100 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600/70 text-xs font-semibold rounded-lg px-2 py-0.5 text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer"
+        <div className="flex items-center space-x-2 flex-wrap gap-y-1.5">
+          {/* Daily Filters: Month & Year */}
+          {activeTab === 'daily' && (
+            <div className="flex items-center space-x-2">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Month & Year:</span>
+              <select
+                value={dailyMonth}
+                onChange={(e) => setDailyMonth(Number(e.target.value))}
+                className="bg-slate-100 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600/70 text-xs font-semibold rounded-lg px-2 py-0.5 text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer"
+              >
+                {MONTH_NAMES.map((name, idx) => (
+                  <option key={name} value={idx + 1} className="dark:bg-slate-800">
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg">
+                <button
+                  onClick={() => setDailyYear((y) => y - 1)}
+                  className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
+                  title="Previous Year"
+                >
+                  <ChevronLeft className="w-3 h-3" />
+                </button>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 px-1">
+                  {dailyYear}
+                </span>
+                <button
+                  onClick={() => setDailyYear((y) => y + 1)}
+                  className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
+                  title="Next Year"
+                >
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Monthly Filter: Year */}
+          {activeTab === 'monthly' && (
+            <div className="flex items-center space-x-2">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Year:</span>
+              <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg">
+                <button
+                  onClick={() => setMonthlyYear((y) => y - 1)}
+                  className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
+                  title="Previous Year"
+                >
+                  <ChevronLeft className="w-3 h-3" />
+                </button>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 px-1">
+                  {monthlyYear}
+                </span>
+                <button
+                  onClick={() => setMonthlyYear((y) => y + 1)}
+                  className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
+                  title="Next Year"
+                >
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Yearly View Indicator */}
+          {activeTab === 'yearly' && (
+            <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+              Multi-Year Historical Overview
+            </div>
+          )}
+
+          {/* Zoom Controls Toolbar */}
+          <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-600/50">
+            <button
+              onClick={handleZoomIn}
+              disabled={transformedChartData.length <= 3}
+              className={`p-1 rounded transition-colors ${
+                transformedChartData.length > 3
+                  ? 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 cursor-pointer'
+                  : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+              }`}
+              title="Zoom In"
             >
-              {MONTH_NAMES.map((name, idx) => (
-                <option key={name} value={idx + 1} className="dark:bg-slate-800">
-                  {name}
-                </option>
-              ))}
-            </select>
-            <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg">
-              <button
-                onClick={() => setDailyYear((y) => y - 1)}
-                className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
-                title="Previous Year"
-              >
-                <ChevronLeft className="w-3 h-3" />
-              </button>
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 px-1">
-                {dailyYear}
-              </span>
-              <button
-                onClick={() => setDailyYear((y) => y + 1)}
-                className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
-                title="Next Year"
-              >
-                <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
+              <ZoomIn className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={handleZoomOut}
+              disabled={!isZoomed}
+              className={`p-1 rounded transition-colors ${
+                isZoomed
+                  ? 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 cursor-pointer'
+                  : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+              }`}
+              title="Zoom Out"
+            >
+              <ZoomOut className="w-3.5 h-3.5" />
+            </button>
+            {isZoomed && (
+              <>
+                <button
+                  onClick={() => handlePan('left')}
+                  className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
+                  title="Pan Left"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => handlePan('right')}
+                  className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
+                  title="Pan Right"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={handleResetZoom}
+                  className="px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-white dark:hover:bg-slate-600 rounded transition-colors flex items-center space-x-1 cursor-pointer"
+                  title="Reset Zoom"
+                >
+                  <RotateCcw className="w-2.5 h-2.5" />
+                  <span>Reset</span>
+                </button>
+              </>
+            )}
           </div>
-        )}
-
-        {/* Monthly Filter: Year */}
-        {activeTab === 'monthly' && (
-          <div className="flex items-center space-x-2">
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Year:</span>
-            <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg">
-              <button
-                onClick={() => setMonthlyYear((y) => y - 1)}
-                className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
-                title="Previous Year"
-              >
-                <ChevronLeft className="w-3 h-3" />
-              </button>
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 px-1">
-                {monthlyYear}
-              </span>
-              <button
-                onClick={() => setMonthlyYear((y) => y + 1)}
-                className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
-                title="Next Year"
-              >
-                <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Yearly View Indicator */}
-        {activeTab === 'yearly' && (
-          <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-            Multi-Year Historical Overview
-          </div>
-        )}
+        </div>
 
         {/* Category color strip */}
         {allCategories.length > 0 && (
@@ -399,8 +596,11 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
           <ResponsiveContainer width="100%" height="100%" minHeight={180}>
             {chartViewType === 'bar' ? (
               <BarChart
-                data={transformedChartData}
+                data={visibleChartData}
                 margin={{ top: 8, right: 6, left: -14, bottom: 0 }}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
                 onClick={(e: any) => {
                   const evt = e as any;
                   if (evt && evt.activePayload && evt.activePayload.length > 0) {
@@ -425,7 +625,7 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
                   axisLine={false}
                   tickLine={false}
                   width={36}
-                  domain={[0, (dataMax: number) => (dataMax > 0 ? Math.ceil(dataMax * 1.15) : 100)]}
+                  domain={[0, yAxisMax]}
                   tick={{ fill: '#94a3b8', fontSize: 9 }}
                   tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
                 />
@@ -482,6 +682,16 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
                   }}
                 />
 
+                {refAreaLeft && refAreaRight && (
+                  <ReferenceArea
+                    x1={refAreaLeft}
+                    x2={refAreaRight}
+                    strokeOpacity={0.3}
+                    fill="#10b981"
+                    fillOpacity={0.15}
+                  />
+                )}
+
                 {allCategories.length > 0 ? (
                   allCategories.map((cat, idx) => (
                     <Bar
@@ -507,8 +717,11 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
               </BarChart>
             ) : (
               <RechartsLineChart
-                data={transformedChartData}
+                data={visibleChartData}
                 margin={{ top: 8, right: 10, left: -14, bottom: 0 }}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
                 onClick={(e: any) => {
                   const evt = e as any;
                   if (evt && evt.activePayload && evt.activePayload.length > 0) {
@@ -533,7 +746,7 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
                   axisLine={false}
                   tickLine={false}
                   width={36}
-                  domain={[0, (dataMax: number) => (dataMax > 0 ? Math.ceil(dataMax * 1.15) : 100)]}
+                  domain={[0, yAxisMax]}
                   tick={{ fill: '#94a3b8', fontSize: 9 }}
                   tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
                 />
@@ -590,6 +803,16 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
                   }}
                 />
 
+                {refAreaLeft && refAreaRight && (
+                  <ReferenceArea
+                    x1={refAreaLeft}
+                    x2={refAreaRight}
+                    strokeOpacity={0.3}
+                    fill="#10b981"
+                    fillOpacity={0.15}
+                  />
+                )}
+
                 {allCategories.length > 0 ? (
                   allCategories.map((cat) => (
                     <Line
@@ -598,9 +821,10 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
                       dataKey={cat.name}
                       name={cat.name}
                       stroke={cat.color}
-                      strokeWidth={2.5}
+                      strokeWidth={2}
+                      strokeDasharray="4 4"
                       dot={{
-                        r: 3.5,
+                        r: 4,
                         fill: cat.color,
                         stroke: '#ffffff',
                         strokeWidth: 1.5,
@@ -620,9 +844,10 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
                     dataKey="totalAmount"
                     name="Total"
                     stroke="#10b981"
-                    strokeWidth={2.5}
+                    strokeWidth={2}
+                    strokeDasharray="4 4"
                     dot={{
-                      r: 3.5,
+                      r: 4,
                       fill: '#10b981',
                       stroke: '#ffffff',
                       strokeWidth: 1.5,
@@ -717,8 +942,12 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
           </strong>
         </span>
         <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center space-x-1">
-          <Info className="w-3 h-3" />
-          <span>Tap/hover {chartViewType === 'line' ? 'point' : 'bar'} to inspect category breakdown</span>
+          <Info className="w-3 h-3 flex-shrink-0" />
+          <span>
+            {isZoomed
+              ? `Zoomed (${visibleChartData.length}/${transformedChartData.length} items) • Use Reset or pan`
+              : `Drag area or use +/- to zoom • Y-axis scales dynamically`}
+          </span>
         </span>
       </div>
     </div>
