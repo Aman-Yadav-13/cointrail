@@ -13,8 +13,6 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
-  ChevronDown,
   TrendingUp,
   Info,
   X,
@@ -22,9 +20,6 @@ import {
   BarChart3,
   LineChart as LucideLineChart,
   Loader2,
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
 } from 'lucide-react';
 import type { DailyTrend, MonthlyTrend, YearlyTrend, Currency, CategorySummary } from '../types';
 import { api } from '../services/api';
@@ -194,19 +189,8 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
     });
   }, [activeItems, allCategories]);
 
-  // Y-axis zoom level: 1.0x (default/full), up to 5.0x magnification
-  const [yZoomLevel, setYZoomLevel] = useState<number>(1);
-  // Vertical pan offset (amount shift at the bottom of the visible Y domain)
-  const [yOffset, setYOffset] = useState<number>(0);
-
-  // Reset Y zoom on active view or filter change
-  useEffect(() => {
-    setYZoomLevel(1);
-    setYOffset(0);
-  }, [activeTab, dailyMonth, dailyYear, monthlyYear]);
-
-  // Base Y-Axis maximum covering all active items in the full dataset
-  const baseYMax = useMemo(() => {
+  // Dynamically calculated Y-Axis upper bound
+  const yAxisMax = useMemo(() => {
     if (transformedChartData.length === 0) return 100;
     let maxVal = 0;
     if (chartViewType === 'line' && allCategories.length > 0) {
@@ -221,66 +205,6 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
     }
     return maxVal > 0 ? Math.ceil(maxVal * 1.15) : 100;
   }, [transformedChartData, chartViewType, allCategories]);
-
-  // Calculate current vertical span and max offset for clamping
-  const currentSpan = useMemo(() => {
-    return Math.max(1, Math.round(baseYMax / yZoomLevel));
-  }, [baseYMax, yZoomLevel]);
-
-  const maxOffset = useMemo(() => {
-    return Math.max(0, baseYMax - currentSpan);
-  }, [baseYMax, currentSpan]);
-
-  // Keep yOffset within valid bounds when span or baseYMax changes
-  useEffect(() => {
-    if (yZoomLevel <= 1) {
-      setYOffset(0);
-    } else {
-      setYOffset((prev) => Math.min(prev, maxOffset));
-    }
-  }, [yZoomLevel, maxOffset]);
-
-  // Dynamic Y-axis domain [min, max]
-  const yDomain = useMemo<[number, number]>(() => {
-    if (yZoomLevel <= 1) {
-      return [0, baseYMax];
-    }
-    const min = Math.max(0, yOffset);
-    const max = Math.min(baseYMax, min + currentSpan);
-    return [min, max];
-  }, [baseYMax, yZoomLevel, yOffset, currentSpan]);
-
-  const isYZoomed = yZoomLevel > 1;
-  const isAtBottom = yOffset <= 0;
-  const isAtTop = yOffset >= maxOffset;
-
-  // Y-Zoom controls
-  const handleZoomInY = () => {
-    setYZoomLevel((prev) => Math.min(5, Number((prev + 0.5).toFixed(1))));
-  };
-
-  const handleZoomOutY = () => {
-    setYZoomLevel((prev) => {
-      const next = Math.max(1, Number((prev - 0.5).toFixed(1)));
-      if (next === 1) setYOffset(0);
-      return next;
-    });
-  };
-
-  const handlePanUp = () => {
-    const step = Math.max(1, Math.round(currentSpan * 0.25));
-    setYOffset((prev) => Math.min(maxOffset, prev + step));
-  };
-
-  const handlePanDown = () => {
-    const step = Math.max(1, Math.round(currentSpan * 0.25));
-    setYOffset((prev) => Math.max(0, prev - step));
-  };
-
-  const handleResetYZoom = () => {
-    setYZoomLevel(1);
-    setYOffset(0);
-  };
 
   const handleBarClick = (entry: any) => {
     if (!entry) return;
@@ -390,149 +314,77 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
         </div>
       </div>
 
-      {/* Dynamic Sub-header: Filters and Zoom Controls */}
+      {/* Dynamic Sub-header: Filters for the active view */}
       <div className="flex items-center justify-between py-2 border-b border-slate-100/70 dark:border-slate-700/40 gap-2 flex-wrap text-xs">
-        <div className="flex items-center space-x-2 flex-wrap gap-y-1.5">
-          {/* Daily Filters: Month & Year */}
-          {activeTab === 'daily' && (
-            <div className="flex items-center space-x-2">
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Month & Year:</span>
-              <select
-                value={dailyMonth}
-                onChange={(e) => setDailyMonth(Number(e.target.value))}
-                className="bg-slate-100 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600/70 text-xs font-semibold rounded-lg px-2 py-0.5 text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer"
+        {/* Daily Filters: Month & Year */}
+        {activeTab === 'daily' && (
+          <div className="flex items-center space-x-2">
+            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Month & Year:</span>
+            <select
+              value={dailyMonth}
+              onChange={(e) => setDailyMonth(Number(e.target.value))}
+              className="bg-slate-100 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600/70 text-xs font-semibold rounded-lg px-2 py-0.5 text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer"
+            >
+              {MONTH_NAMES.map((name, idx) => (
+                <option key={name} value={idx + 1} className="dark:bg-slate-800">
+                  {name}
+                </option>
+              ))}
+            </select>
+            <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg">
+              <button
+                onClick={() => setDailyYear((y) => y - 1)}
+                className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
+                title="Previous Year"
               >
-                {MONTH_NAMES.map((name, idx) => (
-                  <option key={name} value={idx + 1} className="dark:bg-slate-800">
-                    {name}
-                  </option>
-                ))}
-              </select>
-              <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg">
-                <button
-                  onClick={() => setDailyYear((y) => y - 1)}
-                  className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
-                  title="Previous Year"
-                >
-                  <ChevronLeft className="w-3 h-3" />
-                </button>
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 px-1">
-                  {dailyYear}
-                </span>
-                <button
-                  onClick={() => setDailyYear((y) => y + 1)}
-                  className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
-                  title="Next Year"
-                >
-                  <ChevronRight className="w-3 h-3" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Monthly Filter: Year */}
-          {activeTab === 'monthly' && (
-            <div className="flex items-center space-x-2">
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Year:</span>
-              <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg">
-                <button
-                  onClick={() => setMonthlyYear((y) => y - 1)}
-                  className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
-                  title="Previous Year"
-                >
-                  <ChevronLeft className="w-3 h-3" />
-                </button>
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 px-1">
-                  {monthlyYear}
-                </span>
-                <button
-                  onClick={() => setMonthlyYear((y) => y + 1)}
-                  className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
-                  title="Next Year"
-                >
-                  <ChevronRight className="w-3 h-3" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Yearly View Indicator */}
-          {activeTab === 'yearly' && (
-            <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-              Multi-Year Historical Overview
-            </div>
-          )}
-
-          {/* Y-Axis Zoom Controls Toolbar */}
-          <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-600/50">
-            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 px-1 flex items-center space-x-1 select-none">
-              <span>Y-Zoom:</span>
-              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                {yZoomLevel.toFixed(1)}x
+                <ChevronLeft className="w-3 h-3" />
+              </button>
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 px-1">
+                {dailyYear}
               </span>
-            </span>
-            <button
-              onClick={handleZoomInY}
-              disabled={yZoomLevel >= 5}
-              className={`p-1 rounded transition-colors ${
-                yZoomLevel < 5
-                  ? 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 cursor-pointer'
-                  : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
-              }`}
-              title="Zoom In Y-Axis (Magnify vertical amounts)"
-            >
-              <ZoomIn className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={handleZoomOutY}
-              disabled={!isYZoomed}
-              className={`p-1 rounded transition-colors ${
-                isYZoomed
-                  ? 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 cursor-pointer'
-                  : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
-              }`}
-              title="Zoom Out Y-Axis"
-            >
-              <ZoomOut className="w-3.5 h-3.5" />
-            </button>
-            {isYZoomed && (
-              <>
-                <button
-                  onClick={handlePanUp}
-                  disabled={isAtTop}
-                  className={`p-1 rounded transition-colors ${
-                    !isAtTop
-                      ? 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 cursor-pointer'
-                      : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
-                  }`}
-                  title="Pan Up (View higher expenditure range)"
-                >
-                  <ChevronUp className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={handlePanDown}
-                  disabled={isAtBottom}
-                  className={`p-1 rounded transition-colors ${
-                    !isAtBottom
-                      ? 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 cursor-pointer'
-                      : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
-                  }`}
-                  title="Pan Down (View lower expenditure range)"
-                >
-                  <ChevronDown className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={handleResetYZoom}
-                  className="px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-white dark:hover:bg-slate-600 rounded transition-colors flex items-center space-x-1 cursor-pointer"
-                  title="Reset Y-Axis to 1.0x"
-                >
-                  <RotateCcw className="w-2.5 h-2.5" />
-                  <span>Reset</span>
-                </button>
-              </>
-            )}
+              <button
+                onClick={() => setDailyYear((y) => y + 1)}
+                className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
+                title="Next Year"
+              >
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Monthly Filter: Year */}
+        {activeTab === 'monthly' && (
+          <div className="flex items-center space-x-2">
+            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Year:</span>
+            <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg">
+              <button
+                onClick={() => setMonthlyYear((y) => y - 1)}
+                className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
+                title="Previous Year"
+              >
+                <ChevronLeft className="w-3 h-3" />
+              </button>
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 px-1">
+                {monthlyYear}
+              </span>
+              <button
+                onClick={() => setMonthlyYear((y) => y + 1)}
+                className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
+                title="Next Year"
+              >
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Yearly View Indicator */}
+        {activeTab === 'yearly' && (
+          <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+            Multi-Year Historical Overview
+          </div>
+        )}
 
         {/* Category color strip */}
         {allCategories.length > 0 && (
@@ -590,10 +442,9 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
                   axisLine={false}
                   tickLine={false}
                   width={36}
-                  domain={yDomain}
-                  allowDataOverflow={true}
+                  domain={[0, yAxisMax]}
                   tick={{ fill: '#94a3b8', fontSize: 9 }}
-                  tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(val % 1000 === 0 ? 0 : 1)}k` : val)}
+                  tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
                 />
                 <Tooltip
                   content={({ active, payload }) => {
@@ -699,10 +550,9 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
                   axisLine={false}
                   tickLine={false}
                   width={36}
-                  domain={yDomain}
-                  allowDataOverflow={true}
+                  domain={[0, yAxisMax]}
                   tick={{ fill: '#94a3b8', fontSize: 9 }}
-                  tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(val % 1000 === 0 ? 0 : 1)}k` : val)}
+                  tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
                 />
                 <Tooltip
                   content={({ active, payload }) => {
@@ -887,11 +737,7 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
         </span>
         <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center space-x-1">
           <Info className="w-3 h-3 flex-shrink-0" />
-          <span>
-            {isYZoomed
-              ? `Y-Zoom ${yZoomLevel.toFixed(1)}x (${formatCurrency(yDomain[0], currency.symbol)} – ${formatCurrency(yDomain[1], currency.symbol)}) • Pan Up/Down or Reset`
-              : 'Use Y-Zoom +/- to magnify vertical amount scale; all periods remain visible'}
-          </span>
+          <span>Tap/hover {chartViewType === 'line' ? 'point' : 'bar'} to inspect category breakdown</span>
         </span>
       </div>
     </div>
