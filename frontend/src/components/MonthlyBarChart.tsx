@@ -9,11 +9,12 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ReferenceArea,
 } from 'recharts';
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   TrendingUp,
   Info,
   X,
@@ -193,144 +194,95 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
     });
   }, [activeItems, allCategories]);
 
-  // Zoom state: null when showing full dataset, or { startIndex, endIndex }
-  const [zoomRange, setZoomRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
+  // Y-axis zoom level: 1.0x (default/full), up to 5.0x magnification
+  const [yZoomLevel, setYZoomLevel] = useState<number>(1);
+  // Vertical pan offset (amount shift at the bottom of the visible Y domain)
+  const [yOffset, setYOffset] = useState<number>(0);
 
-  // Drag selection state for interactive drag-to-zoom
-  const [refAreaLeft, setRefAreaLeft] = useState<string | null>(null);
-  const [refAreaRight, setRefAreaRight] = useState<string | null>(null);
-
-  // Reset zoom on active view or filter change
+  // Reset Y zoom on active view or filter change
   useEffect(() => {
-    setZoomRange(null);
-    setRefAreaLeft(null);
-    setRefAreaRight(null);
+    setYZoomLevel(1);
+    setYOffset(0);
   }, [activeTab, dailyMonth, dailyYear, monthlyYear]);
 
-  const isZoomed = zoomRange !== null;
-
-  // Sliced data based on active zoom range
-  const visibleChartData = useMemo(() => {
-    if (!zoomRange) return transformedChartData;
-    const start = Math.max(0, zoomRange.startIndex);
-    const end = Math.min(transformedChartData.length - 1, zoomRange.endIndex);
-    if (start >= end) return transformedChartData;
-    return transformedChartData.slice(start, end + 1);
-  }, [transformedChartData, zoomRange]);
-
-  // Dynamically recalculated Y-Axis upper bound based on visible data
-  const yAxisMax = useMemo(() => {
-    if (visibleChartData.length === 0) return 100;
+  // Base Y-Axis maximum covering all active items in the full dataset
+  const baseYMax = useMemo(() => {
+    if (transformedChartData.length === 0) return 100;
     let maxVal = 0;
     if (chartViewType === 'line' && allCategories.length > 0) {
-      visibleChartData.forEach((row) => {
+      transformedChartData.forEach((row) => {
         allCategories.forEach((cat) => {
           const val = Number(row[cat.name]) || 0;
           if (val > maxVal) maxVal = val;
         });
       });
     } else {
-      maxVal = Math.max(...visibleChartData.map((r) => r.totalAmount || 0), 0);
+      maxVal = Math.max(...transformedChartData.map((r) => r.totalAmount || 0), 0);
     }
     return maxVal > 0 ? Math.ceil(maxVal * 1.15) : 100;
-  }, [visibleChartData, chartViewType, allCategories]);
+  }, [transformedChartData, chartViewType, allCategories]);
 
-  // Zoom controls
-  const handleZoomIn = () => {
-    const total = transformedChartData.length;
-    if (total <= 3) return;
-    const currentStart = zoomRange ? zoomRange.startIndex : 0;
-    const currentEnd = zoomRange ? zoomRange.endIndex : total - 1;
-    const currentSpan = currentEnd - currentStart;
-    if (currentSpan <= 2) return;
+  // Calculate current vertical span and max offset for clamping
+  const currentSpan = useMemo(() => {
+    return Math.max(1, Math.round(baseYMax / yZoomLevel));
+  }, [baseYMax, yZoomLevel]);
 
-    const quarter = Math.max(1, Math.round(currentSpan * 0.25));
-    const newStart = Math.min(currentStart + quarter, currentEnd - 2);
-    const newEnd = Math.max(currentEnd - quarter, newStart + 2);
-    setZoomRange({ startIndex: newStart, endIndex: newEnd });
-  };
+  const maxOffset = useMemo(() => {
+    return Math.max(0, baseYMax - currentSpan);
+  }, [baseYMax, currentSpan]);
 
-  const handleZoomOut = () => {
-    if (!zoomRange) return;
-    const total = transformedChartData.length;
-    const currentSpan = zoomRange.endIndex - zoomRange.startIndex;
-    const quarter = Math.max(1, Math.round(currentSpan * 0.35));
-    const newStart = Math.max(0, zoomRange.startIndex - quarter);
-    const newEnd = Math.min(total - 1, zoomRange.endIndex + quarter);
-
-    if (newStart === 0 && newEnd >= total - 1) {
-      setZoomRange(null);
+  // Keep yOffset within valid bounds when span or baseYMax changes
+  useEffect(() => {
+    if (yZoomLevel <= 1) {
+      setYOffset(0);
     } else {
-      setZoomRange({ startIndex: newStart, endIndex: newEnd });
+      setYOffset((prev) => Math.min(prev, maxOffset));
     }
+  }, [yZoomLevel, maxOffset]);
+
+  // Dynamic Y-axis domain [min, max]
+  const yDomain = useMemo<[number, number]>(() => {
+    if (yZoomLevel <= 1) {
+      return [0, baseYMax];
+    }
+    const min = Math.max(0, yOffset);
+    const max = Math.min(baseYMax, min + currentSpan);
+    return [min, max];
+  }, [baseYMax, yZoomLevel, yOffset, currentSpan]);
+
+  const isYZoomed = yZoomLevel > 1;
+  const isAtBottom = yOffset <= 0;
+  const isAtTop = yOffset >= maxOffset;
+
+  // Y-Zoom controls
+  const handleZoomInY = () => {
+    setYZoomLevel((prev) => Math.min(5, Number((prev + 0.5).toFixed(1))));
   };
 
-  const handlePan = (direction: 'left' | 'right') => {
-    if (!zoomRange) return;
-    const total = transformedChartData.length;
-    const span = zoomRange.endIndex - zoomRange.startIndex;
-    const step = Math.max(1, Math.round(span * 0.3));
-
-    if (direction === 'left') {
-      const newStart = Math.max(0, zoomRange.startIndex - step);
-      const newEnd = Math.min(total - 1, newStart + span);
-      setZoomRange({ startIndex: newStart, endIndex: newEnd });
-    } else {
-      const newEnd = Math.min(total - 1, zoomRange.endIndex + step);
-      const newStart = Math.max(0, newEnd - span);
-      setZoomRange({ startIndex: newStart, endIndex: newEnd });
-    }
+  const handleZoomOutY = () => {
+    setYZoomLevel((prev) => {
+      const next = Math.max(1, Number((prev - 0.5).toFixed(1)));
+      if (next === 1) setYOffset(0);
+      return next;
+    });
   };
 
-  const handleResetZoom = () => {
-    setZoomRange(null);
-    setRefAreaLeft(null);
-    setRefAreaRight(null);
+  const handlePanUp = () => {
+    const step = Math.max(1, Math.round(currentSpan * 0.25));
+    setYOffset((prev) => Math.min(maxOffset, prev + step));
   };
 
-  const wasDraggingZoom = React.useRef(false);
-
-  const handleMouseDown = (e: any) => {
-    if (e && e.activeLabel) {
-      setRefAreaLeft(e.activeLabel);
-      setRefAreaRight(null);
-    }
+  const handlePanDown = () => {
+    const step = Math.max(1, Math.round(currentSpan * 0.25));
+    setYOffset((prev) => Math.max(0, prev - step));
   };
 
-  const handleMouseMove = (e: any) => {
-    if (refAreaLeft && e && e.activeLabel) {
-      setRefAreaRight(e.activeLabel);
-    }
-  };
-
-  const handleMouseUp = () => {
-    if (!refAreaLeft || !refAreaRight || refAreaLeft === refAreaRight) {
-      setRefAreaLeft(null);
-      setRefAreaRight(null);
-      return;
-    }
-
-    const idx1 = transformedChartData.findIndex((d) => d.displayLabel === refAreaLeft);
-    const idx2 = transformedChartData.findIndex((d) => d.displayLabel === refAreaRight);
-
-    if (idx1 !== -1 && idx2 !== -1) {
-      const start = Math.min(idx1, idx2);
-      const end = Math.max(idx1, idx2);
-      if (end - start >= 1) {
-        wasDraggingZoom.current = true;
-        setZoomRange({ startIndex: start, endIndex: end });
-        setTimeout(() => {
-          wasDraggingZoom.current = false;
-        }, 150);
-      }
-    }
-
-    setRefAreaLeft(null);
-    setRefAreaRight(null);
+  const handleResetYZoom = () => {
+    setYZoomLevel(1);
+    setYOffset(0);
   };
 
   const handleBarClick = (entry: any) => {
-    if (wasDraggingZoom.current) return;
     if (!entry) return;
     if (pinnedItem && pinnedItem.label === entry.fullLabel) {
       setPinnedItem(null);
@@ -511,52 +463,68 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
             </div>
           )}
 
-          {/* Zoom Controls Toolbar */}
-          <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-600/50">
+          {/* Y-Axis Zoom Controls Toolbar */}
+          <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-600/50">
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 px-1 flex items-center space-x-1 select-none">
+              <span>Y-Zoom:</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                {yZoomLevel.toFixed(1)}x
+              </span>
+            </span>
             <button
-              onClick={handleZoomIn}
-              disabled={transformedChartData.length <= 3}
+              onClick={handleZoomInY}
+              disabled={yZoomLevel >= 5}
               className={`p-1 rounded transition-colors ${
-                transformedChartData.length > 3
+                yZoomLevel < 5
                   ? 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 cursor-pointer'
                   : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
               }`}
-              title="Zoom In"
+              title="Zoom In Y-Axis (Magnify vertical amounts)"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={handleZoomOut}
-              disabled={!isZoomed}
+              onClick={handleZoomOutY}
+              disabled={!isYZoomed}
               className={`p-1 rounded transition-colors ${
-                isZoomed
+                isYZoomed
                   ? 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 cursor-pointer'
                   : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
               }`}
-              title="Zoom Out"
+              title="Zoom Out Y-Axis"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            {isZoomed && (
+            {isYZoomed && (
               <>
                 <button
-                  onClick={() => handlePan('left')}
-                  className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
-                  title="Pan Left"
+                  onClick={handlePanUp}
+                  disabled={isAtTop}
+                  className={`p-1 rounded transition-colors ${
+                    !isAtTop
+                      ? 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 cursor-pointer'
+                      : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                  }`}
+                  title="Pan Up (View higher expenditure range)"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <ChevronUp className="w-3.5 h-3.5" />
                 </button>
                 <button
-                  onClick={() => handlePan('right')}
-                  className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
-                  title="Pan Right"
+                  onClick={handlePanDown}
+                  disabled={isAtBottom}
+                  className={`p-1 rounded transition-colors ${
+                    !isAtBottom
+                      ? 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 cursor-pointer'
+                      : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                  }`}
+                  title="Pan Down (View lower expenditure range)"
                 >
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  <ChevronDown className="w-3.5 h-3.5" />
                 </button>
                 <button
-                  onClick={handleResetZoom}
+                  onClick={handleResetYZoom}
                   className="px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-white dark:hover:bg-slate-600 rounded transition-colors flex items-center space-x-1 cursor-pointer"
-                  title="Reset Zoom"
+                  title="Reset Y-Axis to 1.0x"
                 >
                   <RotateCcw className="w-2.5 h-2.5" />
                   <span>Reset</span>
@@ -596,11 +564,8 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
           <ResponsiveContainer width="100%" height="100%" minHeight={180}>
             {chartViewType === 'bar' ? (
               <BarChart
-                data={visibleChartData}
+                data={transformedChartData}
                 margin={{ top: 8, right: 6, left: -14, bottom: 0 }}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
                 onClick={(e: any) => {
                   const evt = e as any;
                   if (evt && evt.activePayload && evt.activePayload.length > 0) {
@@ -625,9 +590,10 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
                   axisLine={false}
                   tickLine={false}
                   width={36}
-                  domain={[0, yAxisMax]}
+                  domain={yDomain}
+                  allowDataOverflow={true}
                   tick={{ fill: '#94a3b8', fontSize: 9 }}
-                  tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
+                  tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(val % 1000 === 0 ? 0 : 1)}k` : val)}
                 />
                 <Tooltip
                   content={({ active, payload }) => {
@@ -682,16 +648,6 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
                   }}
                 />
 
-                {refAreaLeft && refAreaRight && (
-                  <ReferenceArea
-                    x1={refAreaLeft}
-                    x2={refAreaRight}
-                    strokeOpacity={0.3}
-                    fill="#10b981"
-                    fillOpacity={0.15}
-                  />
-                )}
-
                 {allCategories.length > 0 ? (
                   allCategories.map((cat, idx) => (
                     <Bar
@@ -717,11 +673,8 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
               </BarChart>
             ) : (
               <RechartsLineChart
-                data={visibleChartData}
+                data={transformedChartData}
                 margin={{ top: 8, right: 10, left: -14, bottom: 0 }}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
                 onClick={(e: any) => {
                   const evt = e as any;
                   if (evt && evt.activePayload && evt.activePayload.length > 0) {
@@ -746,9 +699,10 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
                   axisLine={false}
                   tickLine={false}
                   width={36}
-                  domain={[0, yAxisMax]}
+                  domain={yDomain}
+                  allowDataOverflow={true}
                   tick={{ fill: '#94a3b8', fontSize: 9 }}
-                  tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
+                  tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(val % 1000 === 0 ? 0 : 1)}k` : val)}
                 />
                 <Tooltip
                   content={({ active, payload }) => {
@@ -802,16 +756,6 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
                     );
                   }}
                 />
-
-                {refAreaLeft && refAreaRight && (
-                  <ReferenceArea
-                    x1={refAreaLeft}
-                    x2={refAreaRight}
-                    strokeOpacity={0.3}
-                    fill="#10b981"
-                    fillOpacity={0.15}
-                  />
-                )}
 
                 {allCategories.length > 0 ? (
                   allCategories.map((cat) => (
@@ -944,9 +888,9 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
         <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center space-x-1">
           <Info className="w-3 h-3 flex-shrink-0" />
           <span>
-            {isZoomed
-              ? `Zoomed (${visibleChartData.length}/${transformedChartData.length} items) • Use Reset or pan`
-              : `Drag area or use +/- to zoom • Y-axis scales dynamically`}
+            {isYZoomed
+              ? `Y-Zoom ${yZoomLevel.toFixed(1)}x (${formatCurrency(yDomain[0], currency.symbol)} – ${formatCurrency(yDomain[1], currency.symbol)}) • Pan Up/Down or Reset`
+              : 'Use Y-Zoom +/- to magnify vertical amount scale; all periods remain visible'}
           </span>
         </span>
       </div>
