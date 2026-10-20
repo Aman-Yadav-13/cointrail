@@ -217,65 +217,131 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
     return maxVal > 0 ? Math.ceil(maxVal * 1.15) : 100;
   }, [transformedChartData, chartViewType, allCategories]);
 
-  // 2D Zoom Level: 1.0x (default), up to 3.0x in equal increments
+  // 2D Zoom Level: 1.0x (default), up to 3.0x
   const [zoomLevel, setZoomLevel] = useState<number>(1);
-  // 2D Pan offset in pixels
-  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  // X-axis window start index
+  const [xStart, setXStart] = useState<number>(0);
+  // Y-axis lower bound
+  const [yMin, setYMin] = useState<number>(0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+
+  const totalPoints = transformedChartData.length;
+  const xWindowSize = useMemo(() => {
+    if (zoomLevel <= 1 || totalPoints <= 3) return totalPoints;
+    return Math.max(3, Math.min(totalPoints, Math.round(totalPoints / zoomLevel)));
+  }, [totalPoints, zoomLevel]);
+
+  const maxStartIndex = Math.max(0, totalPoints - xWindowSize);
+
+  const ySpan = useMemo(() => {
+    if (zoomLevel <= 1) return yAxisMax;
+    return Math.max(10, Math.round(yAxisMax / zoomLevel));
+  }, [yAxisMax, zoomLevel]);
+
+  const maxYMin = Math.max(0, yAxisMax - ySpan);
+
+  const activeYMin = Math.min(yMin, maxYMin);
+  const activeYMax = Math.min(yAxisMax, Math.round(activeYMin + ySpan));
+
+  // Sliced data for visible X window
+  const visibleChartData = useMemo(() => {
+    if (zoomLevel <= 1 || totalPoints <= 3) {
+      return transformedChartData;
+    }
+    const start = Math.min(Math.round(xStart), maxStartIndex);
+    return transformedChartData.slice(start, start + xWindowSize);
+  }, [transformedChartData, zoomLevel, totalPoints, xStart, maxStartIndex, xWindowSize]);
 
   const viewportRef = React.useRef<HTMLDivElement>(null);
   const dragStartPos = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const dragStartPan = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const dragStartOffset = React.useRef<{ xStart: number; yMin: number }>({ xStart: 0, yMin: 0 });
   const hasMovedRef = React.useRef<boolean>(false);
 
-  // Reset zoom and pan on active view or filter change
+  // Reset zoom on active view or filter change
   useEffect(() => {
     setZoomLevel(1);
-    setPanOffset({ x: 0, y: 0 });
+    setXStart(0);
+    setYMin(0);
     setIsDragging(false);
   }, [activeTab, dailyMonth, dailyYear, monthlyYear]);
 
-  // Handle 2D zoom step change with center-preserving pan
+  // Handle zoom step change centered on current window
   const handleZoomChange = (newZoom: number) => {
-    if (newZoom <= 1) {
+    const targetZoom = Math.min(3, Math.max(1, Number(newZoom.toFixed(2))));
+    if (targetZoom <= 1) {
       setZoomLevel(1);
-      setPanOffset({ x: 0, y: 0 });
+      setXStart(0);
+      setYMin(0);
       return;
     }
 
-    if (!viewportRef.current) {
-      setZoomLevel(newZoom);
-      return;
-    }
+    const currentCenterX = totalPoints > 0 ? xStart + xWindowSize / 2 : 0;
+    const currentRatioY = maxYMin > 0 ? yMin / maxYMin : 0;
 
-    const rect = viewportRef.current.getBoundingClientRect();
-    const w = rect.width;
-    const h = rect.height;
+    const nextWindowSize = Math.max(3, Math.min(totalPoints, Math.round(totalPoints / targetZoom)));
+    const nextYSpan = Math.max(10, Math.round(yAxisMax / targetZoom));
 
-    // Keep the current viewport center pinned in the content
-    const currentCenterX = (-panOffset.x + w / 2) / zoomLevel;
-    const currentCenterY = (-panOffset.y + h / 2) / zoomLevel;
+    const nextMaxStart = Math.max(0, totalPoints - nextWindowSize);
+    const nextMaxYMin = Math.max(0, yAxisMax - nextYSpan);
 
-    let newX = -(currentCenterX * newZoom - w / 2);
-    let newY = -(currentCenterY * newZoom - h / 2);
+    const nextXStart = Math.max(0, Math.min(nextMaxStart, currentCenterX - nextWindowSize / 2));
+    const nextYMin = Math.max(0, Math.min(nextMaxYMin, currentRatioY * nextMaxYMin));
 
-    const minX = -w * (newZoom - 1);
-    const minY = -h * (newZoom - 1);
-
-    newX = Math.min(0, Math.max(minX, newX));
-    newY = Math.min(0, Math.max(minY, newY));
-
-    setZoomLevel(newZoom);
-    setPanOffset({ x: Math.round(newX), y: Math.round(newY) });
+    setZoomLevel(targetZoom);
+    setXStart(nextXStart);
+    setYMin(nextYMin);
   };
 
-  // Mouse drag handlers for horizontal & vertical sliding
+  // Mouse wheel and trackpad sliding (no click needed)
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Trackpad pinch-to-zoom (ctrlKey or metaKey)
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const zoomDelta = -e.deltaY * 0.005;
+        handleZoomChange(zoomLevel + zoomDelta);
+        return;
+      }
+
+      // Mouse slide when zoomed in
+      if (zoomLevel > 1) {
+        e.preventDefault();
+
+        // Horizontal slide via trackpad deltaX or Shift+wheel
+        const shiftX = e.shiftKey ? e.deltaY : e.deltaX;
+        if (Math.abs(shiftX) > 0.3) {
+          const delta = shiftX / 50;
+          setXStart((prev) => {
+            const currentMax = Math.max(0, totalPoints - xWindowSize);
+            return Math.max(0, Math.min(currentMax, prev + delta));
+          });
+        }
+
+        // Vertical slide via trackpad deltaY or mouse wheel
+        if (Math.abs(e.deltaY) > 0.3 && !e.shiftKey) {
+          const currentMaxY = Math.max(0, yAxisMax - ySpan);
+          const deltaY = -(e.deltaY / 100) * (ySpan / 4);
+          setYMin((prev) => Math.max(0, Math.min(currentMaxY, prev + deltaY)));
+        }
+      }
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+    };
+  }, [zoomLevel, totalPoints, xWindowSize, yAxisMax, ySpan, xStart, yMin]);
+
+  // Mouse drag handlers for sliding
   const handleMouseDown = (e: React.MouseEvent) => {
     if (zoomLevel <= 1 || e.button !== 0) return;
     setIsDragging(true);
     hasMovedRef.current = false;
     dragStartPos.current = { x: e.clientX, y: e.clientY };
-    dragStartPan.current = { ...panOffset };
+    dragStartOffset.current = { xStart, yMin };
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -288,13 +354,17 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
     }
 
     const rect = viewportRef.current.getBoundingClientRect();
-    const minX = -rect.width * (zoomLevel - 1);
-    const minY = -rect.height * (zoomLevel - 1);
+    const w = rect.width || 400;
+    const h = rect.height || 200;
 
-    const newX = Math.min(0, Math.max(minX, dragStartPan.current.x + dx));
-    const newY = Math.min(0, Math.max(minY, dragStartPan.current.y + dy));
+    const itemsDelta = (dx / w) * xWindowSize;
+    const newXStart = Math.max(0, Math.min(maxStartIndex, dragStartOffset.current.xStart - itemsDelta));
 
-    setPanOffset({ x: newX, y: newY });
+    const yDelta = (dy / h) * ySpan;
+    const newYMin = Math.max(0, Math.min(maxYMin, dragStartOffset.current.yMin + yDelta));
+
+    setXStart(newXStart);
+    setYMin(newYMin);
   };
 
   const handleMouseUp = () => {
@@ -312,7 +382,7 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
     setIsDragging(true);
     hasMovedRef.current = false;
     dragStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    dragStartPan.current = { ...panOffset };
+    dragStartOffset.current = { xStart, yMin };
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -325,13 +395,17 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
     }
 
     const rect = viewportRef.current.getBoundingClientRect();
-    const minX = -rect.width * (zoomLevel - 1);
-    const minY = -rect.height * (zoomLevel - 1);
+    const w = rect.width || 400;
+    const h = rect.height || 200;
 
-    const newX = Math.min(0, Math.max(minX, dragStartPan.current.x + dx));
-    const newY = Math.min(0, Math.max(minY, dragStartPan.current.y + dy));
+    const itemsDelta = (dx / w) * xWindowSize;
+    const newXStart = Math.max(0, Math.min(maxStartIndex, dragStartOffset.current.xStart - itemsDelta));
 
-    setPanOffset({ x: newX, y: newY });
+    const yDelta = (dy / h) * ySpan;
+    const newYMin = Math.max(0, Math.min(maxYMin, dragStartOffset.current.yMin + yDelta));
+
+    setXStart(newXStart);
+    setYMin(newYMin);
   };
 
   const handleTouchEnd = () => {
@@ -612,19 +686,10 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
             zoomLevel > 1 ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''
           }`}
         >
-          <div
-            style={{
-              width: `${zoomLevel * 100}%`,
-              height: `${zoomLevel * 100}%`,
-              transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
-              transition: isDragging ? 'none' : 'transform 0.15s ease-out',
-            }}
-            className="min-w-0 h-full"
-          >
-            <ResponsiveContainer width="100%" height="100%" minHeight={180}>
+          <ResponsiveContainer width="100%" height="100%" minHeight={180}>
             {chartViewType === 'bar' ? (
               <BarChart
-                data={transformedChartData}
+                data={visibleChartData}
                 margin={{ top: 8, right: 6, left: -14, bottom: 0 }}
                 onClick={(e: any) => {
                   const evt = e as any;
@@ -643,14 +708,15 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
                   dataKey="displayLabel"
                   axisLine={false}
                   tickLine={false}
-                  interval={activeTab === 'daily' && isMobile ? 2 : 0}
+                  interval={activeTab === 'daily' && isMobile && zoomLevel === 1 ? 2 : 0}
                   tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 600 }}
                 />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
                   width={36}
-                  domain={[0, yAxisMax]}
+                  domain={[Math.round(activeYMin), Math.max(Math.round(activeYMax), Math.round(activeYMin) + 1)]}
+                  allowDataOverflow={true}
                   tick={{ fill: '#94a3b8', fontSize: 9 }}
                   tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
                 />
@@ -732,7 +798,7 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
               </BarChart>
             ) : (
               <RechartsLineChart
-                data={transformedChartData}
+                data={visibleChartData}
                 margin={{ top: 8, right: 10, left: -14, bottom: 0 }}
                 onClick={(e: any) => {
                   const evt = e as any;
@@ -751,14 +817,15 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
                   dataKey="displayLabel"
                   axisLine={false}
                   tickLine={false}
-                  interval={activeTab === 'daily' && isMobile ? 2 : 0}
+                  interval={activeTab === 'daily' && isMobile && zoomLevel === 1 ? 2 : 0}
                   tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 600 }}
                 />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
                   width={36}
-                  domain={[0, yAxisMax]}
+                  domain={[Math.round(activeYMin), Math.max(Math.round(activeYMax), Math.round(activeYMin) + 1)]}
+                  allowDataOverflow={true}
                   tick={{ fill: '#94a3b8', fontSize: 9 }}
                   tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
                 />
@@ -868,12 +935,11 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
               </RechartsLineChart>
             )}
           </ResponsiveContainer>
-          </div>
 
           {zoomLevel > 1 && (
             <div className="absolute bottom-2 right-2 bg-slate-900/80 text-white backdrop-blur-xs text-[10px] font-medium px-2 py-0.5 rounded-full pointer-events-none flex items-center space-x-1 shadow-sm opacity-85 z-10 select-none">
               <Move className="w-2.5 h-2.5 text-emerald-400" />
-              <span>Drag to slide</span>
+              <span>Scroll or drag to slide</span>
             </div>
           )}
         </div>
@@ -957,7 +1023,7 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
           <Info className="w-3 h-3 flex-shrink-0" />
           <span>
             {zoomLevel > 1
-              ? `Zoomed ${zoomLevel.toFixed(1)}x • Drag graph to slide horizontally or vertically`
+              ? `Zoomed ${zoomLevel.toFixed(1)}x • Slide with mouse/trackpad or drag to pan`
               : `Tap/hover ${chartViewType === 'line' ? 'point' : 'bar'} to inspect breakdown • Use +/- to zoom`}
           </span>
         </span>
