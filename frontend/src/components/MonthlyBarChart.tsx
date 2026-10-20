@@ -170,24 +170,31 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
     return Array.from(map.values());
   }, [activeItems]);
 
-  // Transform data for Recharts stacked bars
+  // Transform data for Recharts stacked bars / sparse line chart
   const transformedChartData = useMemo(() => {
     return activeItems.map((item) => {
       const row: Record<string, any> = {
         key: item.key,
         displayLabel: item.displayLabel,
         fullLabel: item.fullLabel,
-        totalAmount: item.totalAmount,
+        totalAmount: chartViewType === 'line' && (item.totalAmount || 0) === 0 ? null : (item.totalAmount || 0),
         count: item.count,
         categoryBreakdowns: item.categoryBreakdowns,
       };
       allCategories.forEach((cat) => {
-        const match = item.categoryBreakdowns.find((b) => b.categoryName === cat.name);
-        row[cat.name] = match ? match.totalAmount : 0;
+        const match = item.categoryBreakdowns?.find((b) => b.categoryName === cat.name);
+        const amount = match ? match.totalAmount : 0;
+        if (chartViewType === 'line') {
+          // In line view, omit (null) days with no spending so the line starts at first use,
+          // connects directly between active days, and doesn't drop to 0.
+          row[cat.name] = amount > 0 ? amount : null;
+        } else {
+          row[cat.name] = amount;
+        }
       });
       return row;
     });
-  }, [activeItems, allCategories]);
+  }, [activeItems, allCategories, chartViewType]);
 
   // Dynamically calculated Y-Axis upper bound
   const yAxisMax = useMemo(() => {
@@ -201,7 +208,7 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
         });
       });
     } else {
-      maxVal = Math.max(...transformedChartData.map((r) => r.totalAmount || 0), 0);
+      maxVal = Math.max(...transformedChartData.map((r) => Number(r.totalAmount) || 0), 0);
     }
     return maxVal > 0 ? Math.ceil(maxVal * 1.15) : 100;
   }, [transformedChartData, chartViewType, allCategories]);
@@ -617,6 +624,7 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
                       stroke={cat.color}
                       strokeWidth={2}
                       strokeDasharray="4 4"
+                      connectNulls={true}
                       dot={{
                         r: 4,
                         fill: cat.color,
@@ -640,6 +648,7 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
                     stroke="#10b981"
                     strokeWidth={2}
                     strokeDasharray="4 4"
+                    connectNulls={true}
                     dot={{
                       r: 4,
                       fill: '#10b981',
