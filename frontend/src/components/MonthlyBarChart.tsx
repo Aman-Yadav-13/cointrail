@@ -20,6 +20,10 @@ import {
   BarChart3,
   LineChart as LucideLineChart,
   Loader2,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Move,
 } from 'lucide-react';
 import type { DailyTrend, MonthlyTrend, YearlyTrend, Currency, CategorySummary } from '../types';
 import { api } from '../services/api';
@@ -213,7 +217,134 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
     return maxVal > 0 ? Math.ceil(maxVal * 1.15) : 100;
   }, [transformedChartData, chartViewType, allCategories]);
 
+  // 2D Zoom Level: 1.0x (default), up to 3.0x in equal increments
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
+  // 2D Pan offset in pixels
+  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+
+  const viewportRef = React.useRef<HTMLDivElement>(null);
+  const dragStartPos = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const dragStartPan = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const hasMovedRef = React.useRef<boolean>(false);
+
+  // Reset zoom and pan on active view or filter change
+  useEffect(() => {
+    setZoomLevel(1);
+    setPanOffset({ x: 0, y: 0 });
+    setIsDragging(false);
+  }, [activeTab, dailyMonth, dailyYear, monthlyYear]);
+
+  // Handle 2D zoom step change with center-preserving pan
+  const handleZoomChange = (newZoom: number) => {
+    if (newZoom <= 1) {
+      setZoomLevel(1);
+      setPanOffset({ x: 0, y: 0 });
+      return;
+    }
+
+    if (!viewportRef.current) {
+      setZoomLevel(newZoom);
+      return;
+    }
+
+    const rect = viewportRef.current.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+
+    // Keep the current viewport center pinned in the content
+    const currentCenterX = (-panOffset.x + w / 2) / zoomLevel;
+    const currentCenterY = (-panOffset.y + h / 2) / zoomLevel;
+
+    let newX = -(currentCenterX * newZoom - w / 2);
+    let newY = -(currentCenterY * newZoom - h / 2);
+
+    const minX = -w * (newZoom - 1);
+    const minY = -h * (newZoom - 1);
+
+    newX = Math.min(0, Math.max(minX, newX));
+    newY = Math.min(0, Math.max(minY, newY));
+
+    setZoomLevel(newZoom);
+    setPanOffset({ x: Math.round(newX), y: Math.round(newY) });
+  };
+
+  // Mouse drag handlers for horizontal & vertical sliding
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoomLevel <= 1 || e.button !== 0) return;
+    setIsDragging(true);
+    hasMovedRef.current = false;
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    dragStartPan.current = { ...panOffset };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || zoomLevel <= 1 || !viewportRef.current) return;
+    const dx = e.clientX - dragStartPos.current.x;
+    const dy = e.clientY - dragStartPos.current.y;
+
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      hasMovedRef.current = true;
+    }
+
+    const rect = viewportRef.current.getBoundingClientRect();
+    const minX = -rect.width * (zoomLevel - 1);
+    const minY = -rect.height * (zoomLevel - 1);
+
+    const newX = Math.min(0, Math.max(minX, dragStartPan.current.x + dx));
+    const newY = Math.min(0, Math.max(minY, dragStartPan.current.y + dy));
+
+    setPanOffset({ x: newX, y: newY });
+  };
+
+  const handleMouseUp = () => {
+    if (isDragging) {
+      setIsDragging(false);
+      setTimeout(() => {
+        hasMovedRef.current = false;
+      }, 120);
+    }
+  };
+
+  // Touch swipe handlers for mobile devices
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (zoomLevel <= 1 || e.touches.length !== 1) return;
+    setIsDragging(true);
+    hasMovedRef.current = false;
+    dragStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    dragStartPan.current = { ...panOffset };
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || zoomLevel <= 1 || !viewportRef.current || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - dragStartPos.current.x;
+    const dy = e.touches[0].clientY - dragStartPos.current.y;
+
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      hasMovedRef.current = true;
+    }
+
+    const rect = viewportRef.current.getBoundingClientRect();
+    const minX = -rect.width * (zoomLevel - 1);
+    const minY = -rect.height * (zoomLevel - 1);
+
+    const newX = Math.min(0, Math.max(minX, dragStartPan.current.x + dx));
+    const newY = Math.min(0, Math.max(minY, dragStartPan.current.y + dy));
+
+    setPanOffset({ x: newX, y: newY });
+  };
+
+  const handleTouchEnd = () => {
+    if (isDragging) {
+      setIsDragging(false);
+      setTimeout(() => {
+        hasMovedRef.current = false;
+      }, 120);
+    }
+  };
+
   const handleBarClick = (entry: any) => {
+    if (hasMovedRef.current) return;
     if (!entry) return;
     if (pinnedItem && pinnedItem.label === entry.fullLabel) {
       setPinnedItem(null);
@@ -321,77 +452,126 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
         </div>
       </div>
 
-      {/* Dynamic Sub-header: Filters for the active view */}
+      {/* Dynamic Sub-header: Filters and Zoom Controls */}
       <div className="flex items-center justify-between py-2 border-b border-slate-100/70 dark:border-slate-700/40 gap-2 flex-wrap text-xs">
-        {/* Daily Filters: Month & Year */}
-        {activeTab === 'daily' && (
-          <div className="flex items-center space-x-2">
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Month & Year:</span>
-            <select
-              value={dailyMonth}
-              onChange={(e) => setDailyMonth(Number(e.target.value))}
-              className="bg-slate-100 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600/70 text-xs font-semibold rounded-lg px-2 py-0.5 text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer"
+        <div className="flex items-center space-x-2 flex-wrap gap-y-1.5">
+          {/* Daily Filters: Month & Year */}
+          {activeTab === 'daily' && (
+            <div className="flex items-center space-x-2">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Month & Year:</span>
+              <select
+                value={dailyMonth}
+                onChange={(e) => setDailyMonth(Number(e.target.value))}
+                className="bg-slate-100 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600/70 text-xs font-semibold rounded-lg px-2 py-0.5 text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer"
+              >
+                {MONTH_NAMES.map((name, idx) => (
+                  <option key={name} value={idx + 1} className="dark:bg-slate-800">
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg">
+                <button
+                  onClick={() => setDailyYear((y) => y - 1)}
+                  className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
+                  title="Previous Year"
+                >
+                  <ChevronLeft className="w-3 h-3" />
+                </button>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 px-1">
+                  {dailyYear}
+                </span>
+                <button
+                  onClick={() => setDailyYear((y) => y + 1)}
+                  className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
+                  title="Next Year"
+                >
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Monthly Filter: Year */}
+          {activeTab === 'monthly' && (
+            <div className="flex items-center space-x-2">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Year:</span>
+              <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg">
+                <button
+                  onClick={() => setMonthlyYear((y) => y - 1)}
+                  className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
+                  title="Previous Year"
+                >
+                  <ChevronLeft className="w-3 h-3" />
+                </button>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 px-1">
+                  {monthlyYear}
+                </span>
+                <button
+                  onClick={() => setMonthlyYear((y) => y + 1)}
+                  className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
+                  title="Next Year"
+                >
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Yearly View Indicator */}
+          {activeTab === 'yearly' && (
+            <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+              Multi-Year Historical Overview
+            </div>
+          )}
+
+          {/* 2D Zoom & Slide Toolbar */}
+          <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-600/50">
+            <button
+              onClick={() => handleZoomChange(Math.min(3, Number((zoomLevel + 0.5).toFixed(1))))}
+              disabled={zoomLevel >= 3}
+              className={`p-1 rounded transition-colors ${
+                zoomLevel < 3
+                  ? 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 cursor-pointer'
+                  : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+              }`}
+              title="Zoom In (Enlarge graph equally in both axes)"
             >
-              {MONTH_NAMES.map((name, idx) => (
-                <option key={name} value={idx + 1} className="dark:bg-slate-800">
-                  {name}
-                </option>
-              ))}
-            </select>
-            <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg">
-              <button
-                onClick={() => setDailyYear((y) => y - 1)}
-                className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
-                title="Previous Year"
-              >
-                <ChevronLeft className="w-3 h-3" />
-              </button>
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 px-1">
-                {dailyYear}
-              </span>
-              <button
-                onClick={() => setDailyYear((y) => y + 1)}
-                className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
-                title="Next Year"
-              >
-                <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
+              <ZoomIn className="w-3.5 h-3.5" />
+            </button>
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 px-1 select-none">
+              {zoomLevel.toFixed(1)}x
+            </span>
+            <button
+              onClick={() => handleZoomChange(Math.max(1, Number((zoomLevel - 0.5).toFixed(1))))}
+              disabled={zoomLevel <= 1}
+              className={`p-1 rounded transition-colors ${
+                zoomLevel > 1
+                  ? 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 cursor-pointer'
+                  : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+              }`}
+              title="Zoom Out"
+            >
+              <ZoomOut className="w-3.5 h-3.5" />
+            </button>
+            {zoomLevel > 1 && (
+              <>
+                <button
+                  onClick={() => handleZoomChange(1)}
+                  className="px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-600 rounded transition-colors flex items-center space-x-1 cursor-pointer"
+                  title="Reset Zoom & Pan"
+                >
+                  <RotateCcw className="w-2.5 h-2.5" />
+                  <span>Reset</span>
+                </button>
+                <span className="text-[9px] bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-semibold px-1.5 py-0.5 rounded flex items-center space-x-1 select-none">
+                  <Move className="w-2.5 h-2.5" />
+                  <span className="hidden sm:inline">Slidable</span>
+                </span>
+              </>
+            )}
           </div>
-        )}
-
-        {/* Monthly Filter: Year */}
-        {activeTab === 'monthly' && (
-          <div className="flex items-center space-x-2">
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Year:</span>
-            <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-slate-700/70 p-0.5 rounded-lg">
-              <button
-                onClick={() => setMonthlyYear((y) => y - 1)}
-                className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
-                title="Previous Year"
-              >
-                <ChevronLeft className="w-3 h-3" />
-              </button>
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 px-1">
-                {monthlyYear}
-              </span>
-              <button
-                onClick={() => setMonthlyYear((y) => y + 1)}
-                className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-600 rounded transition-colors cursor-pointer"
-                title="Next Year"
-              >
-                <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Yearly View Indicator */}
-        {activeTab === 'yearly' && (
-          <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-            Multi-Year Historical Overview
-          </div>
-        )}
+        </div>
 
         {/* Category color strip */}
         {allCategories.length > 0 && (
@@ -419,8 +599,29 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
           <p className="text-xs text-slate-400">Loading chart data...</p>
         </div>
       ) : (
-        <div className="w-full h-52 sm:h-56 min-h-[200px] pt-2 min-w-0">
-          <ResponsiveContainer width="100%" height="100%" minHeight={180}>
+        <div
+          ref={viewportRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className={`w-full h-52 sm:h-56 min-h-[200px] pt-2 min-w-0 overflow-hidden relative select-none ${
+            zoomLevel > 1 ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''
+          }`}
+        >
+          <div
+            style={{
+              width: `${zoomLevel * 100}%`,
+              height: `${zoomLevel * 100}%`,
+              transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+              transition: isDragging ? 'none' : 'transform 0.15s ease-out',
+            }}
+            className="min-w-0 h-full"
+          >
+            <ResponsiveContainer width="100%" height="100%" minHeight={180}>
             {chartViewType === 'bar' ? (
               <BarChart
                 data={transformedChartData}
@@ -667,6 +868,14 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
               </RechartsLineChart>
             )}
           </ResponsiveContainer>
+          </div>
+
+          {zoomLevel > 1 && (
+            <div className="absolute bottom-2 right-2 bg-slate-900/80 text-white backdrop-blur-xs text-[10px] font-medium px-2 py-0.5 rounded-full pointer-events-none flex items-center space-x-1 shadow-sm opacity-85 z-10 select-none">
+              <Move className="w-2.5 h-2.5 text-emerald-400" />
+              <span>Drag to slide</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -746,7 +955,11 @@ export const MonthlyBarChart: React.FC<MonthlyBarChartProps> = ({
         </span>
         <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center space-x-1">
           <Info className="w-3 h-3 flex-shrink-0" />
-          <span>Tap/hover {chartViewType === 'line' ? 'point' : 'bar'} to inspect category breakdown</span>
+          <span>
+            {zoomLevel > 1
+              ? `Zoomed ${zoomLevel.toFixed(1)}x • Drag graph to slide horizontally or vertically`
+              : `Tap/hover ${chartViewType === 'line' ? 'point' : 'bar'} to inspect breakdown • Use +/- to zoom`}
+          </span>
         </span>
       </div>
     </div>
